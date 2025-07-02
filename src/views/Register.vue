@@ -1,6 +1,6 @@
 <template>
-  <div class="home">
-   这是后台管理页面
+  <div>
+    这是注册页面
   </div>
 </template>
 
@@ -8,7 +8,7 @@
 // @ is an alias to /src
 
 export default {
-  name: 'Home',
+  name: 'Register',
 
 }
 </script>
