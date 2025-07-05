@@ -1,19 +1,26 @@
 <template>
 
     <body id="poster">
-        <el-form class="login-container" label-position="left"  label-width="0px">
+        <el-form :rules="rules" :model="loginForm" class="login-container" label-position="left" label-width="0px" ref="loginForm">
             <h3 class="login_title">
                 系统登录
-                <el-button @click="toRegister()">点我注册</el-button>
             </h3>
-            <el-form-item label="">
-                <el-input type="text" v-model="loginForm.loginName" autocomplete="off" placeholder="账号"></el-input>
+            <el-form-item label="" prop="username">
+                <el-input type="text" v-model="loginForm.username" autocomplete="off" placeholder="账号"></el-input>
             </el-form-item>
-            <el-form-item label="">
+            <el-form-item label="" prop="password">
                 <el-input type="password" v-model="loginForm.password" autocomplete="off" placeholder="密码"></el-input>
             </el-form-item>
+            <el-form-item label="">
+                <el-radio-group v-model="loginForm.radio">
+                <el-radio :label="1">管理员</el-radio>
+                <el-radio :label="2">教师</el-radio>
+                <el-radio :label="3">学生</el-radio>
+                </el-radio-group>
+            </el-form-item>
             <el-form-item style="width:100%;">
-                <el-button type="primary"style="width:100%; background: #505458; border: none;" @click="Login()">登录</el-button>
+                <el-button type="primary" style="width:100%; background: #505458; border: none;"
+                    @click="Login()">登录</el-button>
             </el-form-item>
         </el-form>
     </body>
@@ -21,28 +28,55 @@
 
 <script>
 
+
+
 export default {
-  name: 'Login',
+    name: 'Login',
     data() {
         return {
             loginForm: {
-                loginName: '',
+                username: '',
                 password:'',
+                radio:1,
+            },
+            rules: {
+                username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+                password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
             }
+            
         }
     },
     methods: {
         Login() {
-            console.log('submit!',this.loginForm);
-            this.$message({
-            message: '成功登录,欢迎来到后台管理系统',
-            type: 'success'     
-        });
-         this.$router.push({path:'/Home'})
+            this.$refs.loginForm.validate((valid) => {
+                if (valid) {
+                    this.axios.post('/api/login', this.loginForm)
+                        .then(resp => {
+                            // 处理登录成功
+                            if (resp.data.code === 200) {
+                               this.$message.success(resp.data.message);
+                                // 跳转到首页或其他页面
+                                switch(this.loginForm.radio){
+                                    case 1:
+                                        this.$router.push('/home');
+                                        break;
+                                    case 2:
+                                        this.$router.push('/about');
+                                        break;
+                                }
+                            } else {
+                                 this.$message.error(resp.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.loading = false;
+                            this.$message.error('登录失败，请重试');
+                        })
+                } else {
+                    return false;
+                }
+            });
         },
-        toRegister(){
-           this.$router.push({path:'/Register'}) 
-        }
     }
 }
 </script>
