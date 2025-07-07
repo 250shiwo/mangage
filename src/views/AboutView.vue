@@ -1,5 +1,5 @@
 <template>
   <div class="about">
-    这是学生页面
+    这是教师页面
   </div>
 </template>

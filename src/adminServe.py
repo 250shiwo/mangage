@@ -27,12 +27,20 @@ def mainIndex():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json(silent=True) or {}
+    radio = data.get('radio') or request.args.get('radio')
     username = data.get('username') or request.args.get('username')
     password = data.get('password') or request.args.get('password')
-    print(username,password)
+    tablename= 'user'
+    if radio == 1:
+        tablename = 'user'
+    elif radio == 2:
+        tablename = 'counsellor'
+    else:
+        tablename = 'student'
+    print(username,password,radio)
     cursor = db.cursor()
-    sql="""select * from user where username = '%s' and
-     password='%s'""" %(username,password)
+    sql="""select * from %s where username = '%s' and
+     password='%s'""" %(tablename,username,password)
     cursor.execute(sql)
     row = cursor.fetchone()
     if row:
@@ -40,6 +48,20 @@ def login():
         return jsonify({"message": "登录成功!", "code": 200, "data": row})
     else:
         return jsonify({"message": "账号或密码错误", "code": 400})
+# 学生查询接口
+@app.route('/students', methods=['POST', 'GET'])
+def queryStudents():
+    cursor = db.cursor()
+    try:
+        sql = "SELECT id,username,sex,email,phone,student_id,college_id,speciality_id FROM student"
+        cursor.execute(sql)
+        results = cursor.fetchall()
+        columns = ['id', 'username', 'sex', 'email', 'phone','student_id','college_id','speciality_id']
+        students = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '查询成功', 'data': students})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
     
 if __name__ == '__main__':
     app.run(debug=True)

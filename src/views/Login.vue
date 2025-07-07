@@ -63,6 +63,8 @@ export default {
                                     case 2:
                                         this.$router.push('/about');
                                         break;
+                                    case 3:
+                                        this.$router.push('/student');
                                 }
                             } else {
                                  this.$message.error(resp.data.message);
