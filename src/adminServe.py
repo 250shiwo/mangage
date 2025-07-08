@@ -63,5 +63,30 @@ def queryStudents():
         db.rollback()
         return jsonify({'code': '400', 'message': str(e)})
     
+# 学生分页查询接口
+@app.route('/students/paginated', methods=['POST', 'GET'])
+def queryStudentsPaginated():
+    data = request.get_json(silent=True) or {}
+    pageNum = int(data.get('pageNum') or request.args.get('pageNum'))
+    pageSize = int(data.get('pageSize') or request.args.get('pageSize'))
+    offset = (pageNum - 1) * pageSize
+    cursor = db.cursor()
+    try:
+        # 查询总数
+        count_sql = "SELECT COUNT(*) FROM student"
+        cursor.execute(count_sql)
+        total = int(cursor.fetchone()[0])
+        # 查询分页数据
+        sql = "SELECT id,username,sex,email,phone,student_id,college_id,speciality_id FROM student LIMIT %s OFFSET %s"
+        cursor.execute(sql, (pageSize, offset))
+        results = cursor.fetchall()
+        columns = ['id', 'username', 'sex', 'email', 'phone','student_id','college_id','speciality_id']
+        students = [dict(zip(columns, row)) for row in results]
+        
+        return jsonify({'code': '200', 'message': '分页查询成功', 'data': students, 'total': total})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
 if __name__ == '__main__':
     app.run(debug=True)
