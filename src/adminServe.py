@@ -69,24 +69,70 @@ def queryStudentsPaginated():
     data = request.get_json(silent=True) or {}
     pageNum = int(data.get('pageNum') or request.args.get('pageNum'))
     pageSize = int(data.get('pageSize') or request.args.get('pageSize'))
+    username = data.get('params', {}).get('username') or request.args.get('username')
+    phone = data.get('params', {}).get('phone') or request.args.get('phone')
+    student_id = data.get('params', {}).get('student_id') or request.args.get('student_id')
     offset = (pageNum - 1) * pageSize
     cursor = db.cursor()
     try:
         # 查询总数
-        count_sql = "SELECT COUNT(*) FROM student"
-        cursor.execute(count_sql)
+        count_sql = "SELECT COUNT(*) FROM student WHERE 1=1"
+        params = []
+        if username:
+            count_sql += " AND username LIKE CONCAT('%%', %s, '%%')"
+            params.append(username)
+        if phone:
+            count_sql += " AND phone LIKE CONCAT('%%', %s, '%%')"
+            params.append(phone)
+        if student_id:
+            count_sql += " AND student_id LIKE CONCAT('%%', %s, '%%')"
+            params.append(student_id)
+        cursor.execute(count_sql, params)
         total = int(cursor.fetchone()[0])
         # 查询分页数据
-        sql = "SELECT id,username,sex,email,phone,student_id,college_id,speciality_id FROM student LIMIT %s OFFSET %s"
-        cursor.execute(sql, (pageSize, offset))
+        sql = "SELECT id,username,sex,email,phone,student_id,college_id,speciality_id FROM student WHERE 1=1"
+        if username:
+            sql += " AND username LIKE CONCAT('%%', %s, '%%')"
+        if phone:
+            sql += " AND phone LIKE CONCAT('%%', %s, '%%')"
+        if student_id:
+            sql += " AND student_id LIKE CONCAT('%%', %s, '%%')"
+        sql += " LIMIT %s OFFSET %s"
+        pagination_params = params + [pageSize, offset]
+        cursor.execute(sql, pagination_params)
         results = cursor.fetchall()
-        columns = ['id', 'username', 'sex', 'email', 'phone','student_id','college_id','speciality_id']
+        columns = ['id', 'username', 'sex', 'email', 'phone', 'student_id', 'college_id', 'speciality_id']
         students = [dict(zip(columns, row)) for row in results]
-        
         return jsonify({'code': '200', 'message': '分页查询成功', 'data': students, 'total': total})
     except Exception as e:
         db.rollback()
         return jsonify({'code': '400', 'message': str(e)})
+
+# 学生数据保存接口
+@app.route('/students/save', methods=['POST'])
+def saveStudent():
+    data = request.get_json(silent=True) or {}
+    name = data.get('name') or request.args.get('name')
+    username = data.get('username') or request.args.get('username')
+    sex = data.get('sex') or request.args.get('sex')
+    email = data.get('email') or request.args.get('email')
+    phone = data.get('phone') or request.args.get('phone')
+    student_id = data.get('student_id') or request.args.get('student_id')
+    college_id = data.get('college_id') or request.args.get('college_id')
+    speciality_id = data.get('speciality_id') or request.args.get('speciality_id')
+    
+    if not all([username, sex, email, phone, student_id, college_id, speciality_id]):
+        return jsonify({'code': 400, 'message': '缺少必要参数'})
+    
+    cursor = db.cursor()
+    try:
+        sql = "INSERT INTO student (name,username, sex, email, phone, student_id, college_id, speciality_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        cursor.execute(sql, (name,username, sex, email, phone, student_id, college_id, speciality_id))
+        db.commit()
+        return jsonify({'code': 200, 'message': '数据添加成功'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': 400, 'message': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)
