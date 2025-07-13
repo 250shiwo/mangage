@@ -53,7 +53,7 @@ export default {
                     this.axios.post('/api/login', this.loginForm)
                         .then(resp => {
                             // 处理登录成功
-                            if (resp.data.code === 200) {
+                            if (resp.data.code === '200') {
                                this.$message.success(resp.data.message);
                                 // 跳转到首页或其他页面
                                 switch(this.loginForm.radio){

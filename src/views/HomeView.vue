@@ -61,6 +61,7 @@
           <el-table :data="tableData" :header-cell-style="{background:'#f2f5fc',color:'#555555'}">
             <el-table-column type="selection" width="60"></el-table-column>
             <el-table-column prop="id" label="ID" width="60" align='center'></el-table-column>
+            <el-table-column prop="name" label="姓名" width="120" align='center'></el-table-column>
             <el-table-column prop="username" label="用户名" width="120" align='center'></el-table-column>
             <el-table-column prop="sex" label="性别" width="120" align='center'>
               <template slot-scope="scope">
@@ -130,7 +131,7 @@
               </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
-              <el-button @click="centerDialogVisible = false">取 消</el-button>
+              <el-button @click="cancel">取 消</el-button>
               <el-button type="primary" @click="save">确 定</el-button>
             </span>
           </el-dialog>
@@ -192,15 +193,65 @@ export default {
     this.postStudents()
   },
   methods:{
+    cancel(){
+      this.centerDialogVisible=false;
+      this.resetForm()
+    },
     resetForm() {
         this.$refs.form.resetFields();
       },
+    handleDelete(index,row){
+      this.$confirm('此操作将永久删除【' + row.name + '】, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        console.log(row.id)
+        this.axios.delete("/students/delete?id="+row.id).then(res => {
+          if (res && res.data.code == '200') {
+            this.$message({
+              type: "success", message: "删除成功"
+            })
+            this.postStudents();
+          }
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        });
+      });
+    },
+    handleEdit(index,row){
+      this.title="编辑学生",
+      this.form = Object.assign({}, row);
+      this.form.sex = row.sex+''
+      this.centerDialogVisible = true;
+    },
     save(){
       this.$refs.form.validate((valid) => {
         if (valid) {
-          //发起post请求
-          this.axios.post('/students/save', this.form).then(res => {
-            console.log(res)
+          if(this.form.id){
+            //发起put请求修改方法
+            this.axios.put('/students/update', this.form).then(res => {
+              console.log(res)
+              if (res && res.data.code == '200') {
+                this.$message({
+                  message: "修改成功!",
+                  type: "success"
+                });
+                this.centerDialogVisible = false;
+                this.postStudents();
+              } else {
+                this.$message({
+                  message: "修改失败!",
+                  type: "error"
+                });
+              }
+            })
+          }else{
+            //发起post请求添加方法
+          this.axios.post('/students/save', this.form).then(res => {  
             if (res && res.data.code == 200) {
               this.$message({
                 message: "添加学生成功!",
@@ -216,6 +267,7 @@ export default {
               })
             }
           })
+          }
         } else {
           this.$message({
             message: "请检查输入数据是否完整",
@@ -229,9 +281,18 @@ export default {
     add(){
       this.title ='添加学生'
       this.centerDialogVisible = true
-      this.$nextTick(()=>{
-        this.resetForm()
-      })
+      this.resetForm()
+      this.form = {
+        name:'',
+        username:'',
+        sex:'',
+        email:'',
+        phone:'',
+        student_id:'',
+        college_id:'',
+        speciality_id:'',
+        id:''
+      }
     },
     // getStudents(){
     //   this.axios.get('/students?'+queryParams.toString(),{}).then(res=>{
