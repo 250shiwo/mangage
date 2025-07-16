@@ -8,7 +8,6 @@ import axios from 'axios';
 import VueAxios from 'vue-axios';
 import './assets/global.css'
 
-
 Vue.config.productionTip = false
 Vue.use(ElementUI);
 Vue.use(VueAxios,axios)

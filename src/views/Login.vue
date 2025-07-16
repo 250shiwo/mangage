@@ -54,7 +54,10 @@ export default {
                         .then(resp => {
                             // 处理登录成功
                             if (resp.data.code === '200') {
+                                console.log(resp)
                                this.$message.success(resp.data.message);
+                                //存储
+                                sessionStorage.setItem("CurUser",JSON.stringify(resp.data.data[0]))
                                 // 跳转到首页或其他页面
                                 switch(this.loginForm.radio){
                                     case 1:

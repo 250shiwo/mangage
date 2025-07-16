@@ -39,13 +39,15 @@ def login():
         tablename = 'student'
     print(username,password,radio)
     cursor = db.cursor()
-    sql="""select * from %s where username = '%s' and
+    sql="""select id,username,email,role_id,ip from %s where username = '%s' and
      password='%s'""" %(tablename,username,password)
     cursor.execute(sql)
     row = cursor.fetchone()
+    columns = ['id', 'username','email','role_id','ip']
+    users = [dict(zip(columns, row))]
     if row:
         print(row)
-        return jsonify({"message": "登录成功!", "code": '200', "data": row})
+        return jsonify({"message": "登录成功!", "code": '200', "data": users})
     else:
         return jsonify({"message": "账号或密码错误", "code": '400'})
 
