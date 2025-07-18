@@ -27,7 +27,7 @@ def mainIndex():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json(silent=True) or {}
-    radio = data.get('radio') or request.args.get('radio')
+    radio = int(data.get('radio') or request.args.get('radio'))
     username = data.get('username') or request.args.get('username')
     password = data.get('password') or request.args.get('password')
     tablename= 'user'
@@ -41,15 +41,27 @@ def login():
     cursor = db.cursor()
     sql="""select id,username,email,role_id,ip from %s where username = '%s' and
      password='%s'""" %(tablename,username,password)
-    cursor.execute(sql)
-    row = cursor.fetchone()
-    columns = ['id', 'username','email','role_id','ip']
-    users = [dict(zip(columns, row))]
-    if row:
-        print(row)
-        return jsonify({"message": "登录成功!", "code": '200', "data": users})
-    else:
-        return jsonify({"message": "账号或密码错误", "code": '400'})
+    try:
+        cursor.execute(sql)
+        row = cursor.fetchone()
+        if row:
+            print(row)
+            columns = ['id', 'username','email','role_id','ip']
+            users_info = dict(zip(columns, row))
+            role_id = str(users_info['role_id'])
+            #根据 role_id 查询菜单数据
+            menu_sql = "SELECT * FROM menu WHERE FIND_IN_SET(%s, menuRight)"
+            cursor.execute(menu_sql, (role_id,))
+            menu_columns = ['id', 'menuCode', 'menuName', 'menuLevel', 'menuParentCode', 'menuClick', 'menuRight', 'menuComponent', 'menuIcon']
+            menu_rows = cursor.fetchall()
+            menus = [dict(zip(menu_columns, row)) for row in menu_rows]
+            users_info['menus'] = menus
+            return jsonify({"message": "登录成功!", "code": '200', "data": users_info})
+        else:
+            return jsonify({"message": "账号或密码错误", "code": '400'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"message": "登录出错: " + str(e), "code": '400'})
 
 # 修改学生信息接口
 @app.route('/students/update', methods=['PUT','POST'])

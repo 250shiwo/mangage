@@ -5,9 +5,7 @@ import Login from '../views/Login.vue'
 import AboutView from '../views/AboutView.vue'
 import StudentView from '../views/StudentView.vue'
 import Student from '@/views/UserManage/Student.vue'
-import Hinfo from '@/views/Hinfo.vue'
 Vue.use(VueRouter)
-Vue.component('Student',Student)
 
 const routes = [
   {
@@ -26,8 +24,24 @@ const routes = [
         meta:{
           title:'首页'
         },
-        component:Hinfo
-      }
+        component:()=>import('../views/Hinfo.vue')
+      },
+      // {
+      //   path: '/User',
+      //   name: 'User',
+      //   meta: {
+      //     title: '用户管理'
+      //   },
+      //   component: () => import('../views/UserManage/Student.vue')
+      // },
+      // {
+      //   path: '/CollegeMajor',
+      //   name: 'CollegeMajor',
+      //   meta: {
+      //     title: '学院专业管理'
+      //   },
+      //   component: () => import('../views/SchoolManage/Major.vue')
+      // }
     ]
   },
   {
@@ -35,14 +49,17 @@ const routes = [
     name: 'About',
     component: AboutView
   },
-  {
-    path: '/Student',
-    name: 'Student',
-    component: StudentView
-  },
 ]
+export function resetRouter(){
+  router.matcher = new VueRouter({
+    mode:'history',
+    routes:[]
+  }).matcher
+}
+
 
 const router = new VueRouter({
+  mode:'history',
   routes
 })
 

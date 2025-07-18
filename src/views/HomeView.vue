@@ -5,20 +5,15 @@
     <el-container style="height: 100%; border: 1px solid #eee">
       <el-aside :width="aside_width" style="background-color: rgb(238, 241, 246);height: 100%;margin-left: -1px;">
         <el-menu background-color="#545c64" text-color="#fff" active-text-color="#ffd04b" default-active="/Home"
-          :collapse="isCollapse" :collapse-transition="false" style="height: 100vh; text-align: left;">
-          <el-menu-item index="/Home">
+          :collapse="isCollapse" :collapse-transition="false" style="height: 100vh; text-align: left;" router>
+          <el-menu-item index="/Hinfo">
             <i class="el-icon-s-home"></i>
             <span slot="title">首页</span>
           </el-menu-item>
 
-          <el-menu-item index="/School">
-            <i class="el-icon-school"></i>
-            <span slot="title">学院专业管理</span>
-          </el-menu-item>
-
-          <el-menu-item index="/User">
-            <i class="el-icon-user"></i>
-            <span slot="title">用户管理</span>
+          <el-menu-item :index="'/' + item.menuClick" v-for="(item,i) in menu" :key="i">
+            <i :class="item.menuIcon"></i>
+            <span slot="title">{{ item.menuName }}</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -62,11 +57,33 @@ export default {
       user:JSON.parse(sessionStorage.getItem('CurUser')),
       isCollapse:false,
       aside_width:'200px',
-      icon:'el-icon-s-fold',    
+      icon:'el-icon-s-fold',
+      //模拟动态路由
+      // menu:[
+      //   {
+      //     menuClick:'CollegeMajor',
+      //     menuName:'学院专业管理',
+      //     menuIcon:'el-icon-school'
+      //   },
+      //   {
+      //     menuClick:'User',
+      //     menuName:'用户管理',
+      //     menuIcon:'el-icon-user'
+      //   }
+      // ]
+    }
+  },
+  computed:{
+    "menu":{
+      get(){
+        return this.$store.state.menu
+      }
     }
   },
   created(){
-    this.$router.push("/Hinfo")
+    if (this.$route.path !== '/Hinfo') {
+      this.$router.push('/Hinfo');
+    }
   },
   methods:{ 
     toUser(){

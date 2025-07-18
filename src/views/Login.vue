@@ -57,7 +57,9 @@ export default {
                                 console.log(resp)
                                this.$message.success(resp.data.message);
                                 //存储
-                                sessionStorage.setItem("CurUser",JSON.stringify(resp.data.data[0]))
+                                console.log(resp.data.data.menus)
+                                sessionStorage.setItem("CurUser",JSON.stringify(resp.data.data))
+                                this.$store.commit("setMenu",resp.data.data.menus)
                                 // 跳转到首页或其他页面
                                 switch(this.loginForm.radio){
                                     case 1:
