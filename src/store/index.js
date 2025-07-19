@@ -5,24 +5,46 @@ import router,{resetRouter}from '@/router'
 Vue.use(Vuex)
 
 function addNewRoute(menuList) {
-  let routes = router.options.routes
-  routes.forEach(routeItem=>{
-    if(routeItem.path=='/Home'){
-      menuList.forEach(menu=>{
-        let childRoute = {
-          path:'/'+menu.menuClick,
-          name:menu.menuname,
-          meta:{
-            title:'menu.menuname',
-          },
-          component:()=>import('../views/' + menu.menuComponent)
+  const routes = router.options.routes;
+  const menuMap = {};
+  
+  // 构建菜单映射表
+  menuList.forEach(menu => {
+    menuMap[menu.menuCode] = menu;
+  });
+
+  routes.forEach(routeItem => {
+    if (routeItem.path === '/Home') {
+      menuList.forEach(menu => {
+        if (menu.menuParentCode) {
+          const parentMenu = menuMap[menu.menuParentCode];
+          if (parentMenu) {
+            const childRoute = {
+              path: `/${parentMenu.menuClick}/${menu.menuClick}`,
+              name: menu.menuname,
+              meta: {
+                title: menu.menuname,
+              },
+              component: () => import('../views/' + menu.menuComponent)
+            };
+            routeItem.children.push(childRoute);
+          }
+        } else {
+          const childRoute = {
+            path: `/${menu.menuClick}`,
+            name: menu.menuname,
+            meta: {
+              title: menu.menuname,
+            },
+            component: () => import('../views/' + menu.menuComponent)
+          };
+          routeItem.children.push(childRoute);
         }
-        routeItem.children.push(childRoute)
-      })
+      });
     }
-  })
-  resetRouter()
-  router.addRoutes(routes)
+  });
+  resetRouter();
+  router.addRoutes(routes);
 }
 
 export default new Vuex.Store({

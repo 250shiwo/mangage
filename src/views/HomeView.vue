@@ -11,10 +11,26 @@
             <span slot="title">首页</span>
           </el-menu-item>
 
-          <el-menu-item :index="'/' + item.menuClick" v-for="(item,i) in menu" :key="i">
-            <i :class="item.menuIcon"></i>
-            <span slot="title">{{ item.menuName }}</span>
-          </el-menu-item>
+          <template v-for="item in menuTree">
+            <el-submenu v-if="item.children && item.children.length" :index="'sub-' + item.id">
+              <template slot="title">
+                <i :class="item.menuIcon"></i>
+                <span slot="title">{{ item.menuName }}</span>
+              </template>
+              <el-menu-item
+                v-for="child in item.children"
+                :key="child.id"
+                :index="'/' + item.menuClick + '/' + child.menuClick"
+              >
+                {{ child.menuName }}
+              </el-menu-item>
+            </el-submenu>
+            <el-menu-item v-else :index="'/' + item.menuClick">
+              <i :class="item.menuIcon"></i>
+              <span slot="title">{{ item.menuName }}</span>
+            </el-menu-item>
+          </template>
+
         </el-menu>
       </el-aside>
       <!--header部分-->
@@ -38,8 +54,8 @@
         </el-header>
         <!--内容部分-->
         <el-main style="height: 100%; width: 100%;">
-         <!-- <Student></Student> -->
-         <router-view></router-view>
+          <!-- <Student></Student> -->
+          <router-view></router-view>
         </el-main>
       </el-container>
     </el-container>
@@ -58,28 +74,47 @@ export default {
       isCollapse:false,
       aside_width:'200px',
       icon:'el-icon-s-fold',
-      //模拟动态路由
-      // menu:[
-      //   {
-      //     menuClick:'CollegeMajor',
-      //     menuName:'学院专业管理',
-      //     menuIcon:'el-icon-school'
-      //   },
-      //   {
-      //     menuClick:'User',
-      //     menuName:'用户管理',
-      //     menuIcon:'el-icon-user'
-      //   }
-      // ]
     }
   },
   computed:{
     "menu":{
-      get(){
-        return this.$store.state.menu
-      }
+        get(){
+          const menuData = this.$store.state.menu;
+          return menuData;
+        }
+      },
+    menuTree() {
+      const menu = this.menu;
+      const tree = [];
+      
+      // 构建菜单树
+      const map = {};
+      menu.forEach(item => {
+        map[String(item.menuCode)] = {
+          ...item,
+          children: []
+        };
+      });
+      
+      menu.forEach(item => {
+        if (item.menuParentCode) {
+          const parent = map[String(item.menuParentCode)];
+          if (parent) {
+            console.log('为父菜单添加子菜单:', parent.menuName, '添加的子菜单:', map[item.menuCode].menuName);
+            parent.children.push(map[String(item.menuCode)]);
+          } else {
+            console.log('未找到匹配的父菜单，menuParentCode:', item.menuParentCode);
+          }
+        } else {
+          tree.push(map[item.menuCode]);
+        }
+      });
+      
+      console.log('构建好的菜单树数据:', tree);
+      return tree;
     }
   },
+  
   created(){
     if (this.$route.path !== '/Hinfo') {
       this.$router.push('/Hinfo');
