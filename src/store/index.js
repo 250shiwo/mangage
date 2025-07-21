@@ -5,7 +5,10 @@ import router,{resetRouter}from '@/router'
 Vue.use(Vuex)
 
 function addNewRoute(menuList) {
-  const routes = router.options.routes;
+  console.log(menuList)
+  let routes = router.options.routes;
+  console.log(routes)
+
   const menuMap = {};
   
   // 构建菜单映射表
@@ -17,9 +20,9 @@ function addNewRoute(menuList) {
     if (routeItem.path === '/Home') {
       menuList.forEach(menu => {
         if (menu.menuParentCode) {
-          const parentMenu = menuMap[menu.menuParentCode];
+          let parentMenu = menuMap[menu.menuParentCode];
           if (parentMenu) {
-            const childRoute = {
+            let childRoute = {
               path: `/${parentMenu.menuClick}/${menu.menuClick}`,
               name: menu.menuname,
               meta: {
@@ -30,7 +33,7 @@ function addNewRoute(menuList) {
             routeItem.children.push(childRoute);
           }
         } else {
-          const childRoute = {
+          let childRoute = {
             path: `/${menu.menuClick}`,
             name: menu.menuname,
             meta: {
@@ -63,8 +66,4 @@ export default new Vuex.Store({
       addNewRoute(menuList)
     }
   },
-  actions: {
-  },
-  modules: {
-  }
 })

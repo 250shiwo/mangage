@@ -116,14 +116,12 @@ export default {
   },
   
   created(){
-    if (this.$route.path !== '/Hinfo') {
-      this.$router.push('/Hinfo');
-    }
+    this.$router.push('/Hinfo')
   },
   methods:{ 
     toUser(){
       console.log('to_user')
-      this.$router.push("Hinfo")
+      this.$router.push("/Hinfo")
     },
     logout(){
       console.log('to_logout')
