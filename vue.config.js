@@ -6,7 +6,7 @@ module.exports = defineConfig({
 })
 
 
-proxyObj['/'] = {
+proxyObj['/api'] = {
     ws: false,
     target: 'http://localhost:5000',
     changeOrigin: true,
@@ -18,7 +18,13 @@ proxyObj['/'] = {
 
 module.exports = {
   devServer: {
-    proxy: proxyObj
+    proxy: proxyObj,
+    historyApiFallback: {
+      rewrites: [
+        // 将所有路径重定向到 index.html（关键）
+        { from: /^\/.*$/, to: '/index.html' }
+      ]
+    }
   }
 }
 

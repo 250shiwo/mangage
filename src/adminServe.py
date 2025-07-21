@@ -64,7 +64,7 @@ def login():
         return jsonify({"message": "登录出错: " + str(e), "code": '400'})
 
 # 修改学生信息接口
-@app.route('/students/update', methods=['PUT','POST'])
+@app.route('/api/students/update', methods=['PUT','POST'])
 def updateStudent():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -138,7 +138,7 @@ def queryStudents():
         return jsonify({'code': '400', 'message': str(e)})
     
 # 学生分页查询接口
-@app.route('/students/paginated', methods=['POST', 'GET'])
+@app.route('/api/students/paginated', methods=['POST', 'GET'])
 def queryStudentsPaginated():
     data = request.get_json(silent=True) or {}
     pageNum = int(data.get('pageNum') or request.args.get('pageNum'))
@@ -183,7 +183,7 @@ def queryStudentsPaginated():
         return jsonify({'code': '400', 'message': str(e)})
 
 # 学生数据保存接口
-@app.route('/students/save', methods=['POST'])
+@app.route('/api/students/save', methods=['POST'])
 def saveStudent():
     data = request.get_json(silent=True) or {}
     name = data.get('name') or request.args.get('name')
@@ -209,7 +209,7 @@ def saveStudent():
         return jsonify({'code': '400', 'message': str(e)})
 
 # 学生数据删除接口
-@app.route('/students/delete', methods=['DELETE'])
+@app.route('/api/students/delete', methods=['DELETE'])
 def deleteStudent():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')

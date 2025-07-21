@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import Login from '../views/Login.vue'
 import AboutView from '../views/AboutView.vue'
+import store from '@/store'
 import StudentView from '../views/StudentView.vue'
 import Student from '@/views/UserManage/Student.vue'
 Vue.use(VueRouter)
@@ -40,7 +41,6 @@ export function resetRouter(){
     routes:[]
   }).matcher
 }
-
 
 const router = new VueRouter({
   mode:'history',

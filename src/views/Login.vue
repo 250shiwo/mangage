@@ -27,6 +27,8 @@
 </template>
 
 <script>
+import router from '@/router';
+
 
 
 
@@ -55,21 +57,27 @@ export default {
                             // 处理登录成功
                             if (resp.data.code === '200') {
                                 console.log(resp)
-                               this.$message.success(resp.data.message);
+                                this.$message.success(resp.data.message);
                                 //存储
                                 console.log(resp.data.data.menus)
                                 sessionStorage.setItem("CurUser",JSON.stringify(resp.data.data))
                                 this.$store.commit("setMenu",resp.data.data.menus)
                                 // 跳转到首页或其他页面
-                                switch(this.loginForm.radio){
-                                    case 1:
-                                        this.$router.push('/home');
-                                        break;
-                                    case 2:
-                                        this.$router.push('/about');
-                                        break;
-                                    case 3:
-                                        this.$router.push('/student');
+                                const pendingRoute = localStorage.getItem('pendingRoute')
+                                if (pendingRoute) {
+                                    router.push(pendingRoute)
+                                    localStorage.removeItem('pendingRoute')
+                                } else {
+                                    switch (this.loginForm.radio) {
+                                        case 1:
+                                            this.$router.push('/home');
+                                            break;
+                                        case 2:
+                                            this.$router.push('/about');
+                                            break;
+                                        case 3:
+                                            this.$router.push('/student');
+                                    }
                                 }
                             } else {
                                  this.$message.error(resp.data.message);

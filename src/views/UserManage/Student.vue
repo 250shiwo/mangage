@@ -158,7 +158,7 @@
                     type: 'warning'
                 }).then(() => {
                     console.log(row.id)
-                    this.axios.delete("/students/delete?id=" + row.id).then(res => {
+                    this.axios.delete("/api/students/delete?id=" + row.id).then(res => {
                         if (res && res.data.code == '200') {
                             this.$message({
                                 type: "success", message: "删除成功"
@@ -184,7 +184,7 @@
                     if (valid) {
                         if (this.form.id) {
                             //发起put请求修改方法
-                            this.axios.put('/students/update', this.form).then(res => {
+                            this.axios.put('/api/students/update', this.form).then(res => {
                                 console.log(res)
                                 if (res && res.data.code == '200') {
                                     this.$message({
@@ -202,7 +202,7 @@
                             })
                         } else {
                             //发起post请求添加方法
-                            this.axios.post('/students/save', this.form).then(res => {
+                            this.axios.post('/api/students/save', this.form).then(res => {
                                 if (res && res.data.code == 200) {
                                     this.$message({
                                         message: "添加学生成功!",
@@ -256,7 +256,7 @@
             // },
             postStudents() {
                 //发起post请求
-                this.axios.post('/students/paginated', {
+                this.axios.post('/api/students/paginated', {
                     pageNum: this.pageNum,
                     pageSize: this.pageSize,
                     params: {
