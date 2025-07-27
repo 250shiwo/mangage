@@ -3,16 +3,16 @@
     <div>
         <div style="margin-bottom: 5px;">
             <el-input style="width: 200px;" placeholder="请输入姓名" suffix-icon="el-icon-search" v-model="params.name"
-                @keyup.enter.native="postStudents">
+                @keyup.enter.native="postCounsellor">
             </el-input>
             <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入联系方式" suffix-icon="el-icon-search"
-                v-model="params.phone" @keyup.enter.native="postStudents">
+                v-model="params.phone" @keyup.enter.native="postCounsellor">
             </el-input>
-            <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入学号" suffix-icon="el-icon-search"
-                v-model="params.student_id" @keyup.enter.native="postStudents">
+            <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入专业ID" suffix-icon="el-icon-search"
+                v-model="params.speciality_id" @keyup.enter.native="postCounsellor">
             </el-input>
             <el-button type="primary" style="margin-left: 5px;" icon="el-icon-search"
-                @click="postStudents">搜索</el-button>
+                @click="postCounsellor">搜索</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
         </div>
         <!--数据-->
@@ -30,9 +30,9 @@
             </el-table-column>
             <el-table-column prop="email" label="邮箱地址" width="180" align='center'></el-table-column>
             <el-table-column prop="phone" label="联系方式" width="180" align='center'></el-table-column>
-            <el-table-column prop="student_id" label="学号" width="180" align='center'></el-table-column>
-            <el-table-column prop="college_id" label="学院" width="120" align='center'></el-table-column>
+            <el-table-column prop="description" label="描述" width="120" align='center'></el-table-column>
             <el-table-column prop="speciality_id" label="专业" width="120" align='center'></el-table-column>
+            <el-table-column prop="pending_approval_list" label="待办事项" width="180" align='center'></el-table-column>
             <el-table-column label="操作" width="180" align='center'>
                 <template slot-scope="scope">
                     <el-button size="mini" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
@@ -49,12 +49,12 @@
             <el-form ref="form" :rules="rules" :model="form" label-width="80px">
                 <el-form-item label="姓名" prop="name">
                     <el-col :span="20">
-                        <el-input v-model="form.name" placeholder="请输入学生姓名"></el-input>
+                        <el-input v-model="form.name" placeholder="请输入教师姓名"></el-input>
                     </el-col>
                 </el-form-item>
                 <el-form-item label="用户名" prop="username">
                     <el-col :span="20">
-                        <el-input v-model="form.username" placeholder="请输入学生用户名"></el-input>
+                        <el-input v-model="form.username" placeholder="请输入教师用户名"></el-input>
                     </el-col>
                 </el-form-item>
                 <el-form-item label="性别" prop="sex">
@@ -65,27 +65,27 @@
                 </el-form-item>
                 <el-form-item label="邮箱地址" prop="email">
                     <el-col :span="20">
-                        <el-input v-model="form.email" placeholder="请输入学生邮箱地址"></el-input>
+                        <el-input v-model="form.email" placeholder="请输入教师邮箱地址"></el-input>
                     </el-col>
                 </el-form-item>
                 <el-form-item label="联系方式" prop="phone">
                     <el-col :span="20">
-                        <el-input v-model="form.phone" placeholder="请输入学生联系方式"></el-input>
+                        <el-input v-model="form.phone" placeholder="请输入教师联系方式"></el-input>
                     </el-col>
                 </el-form-item>
-                <el-form-item label="学号" prop="student_id">
+                <el-form-item label="描述" prop="description">
                     <el-col :span="20">
-                        <el-input v-model="form.student_id" placeholder="请输入学生学号"></el-input>
-                    </el-col>
-                </el-form-item>
-                <el-form-item label="学院" prop="college_id">
-                    <el-col :span="20">
-                        <el-input v-model="form.college_id" placeholder="请输入学生学院"></el-input>
+                        <el-input v-model="form.description" placeholder="请输入教师描述"></el-input>
                     </el-col>
                 </el-form-item>
                 <el-form-item label="专业" prop="speciality_id">
                     <el-col :span="20">
-                        <el-input v-model="form.speciality_id" placeholder="请输入学生专业"></el-input>
+                        <el-input v-model="form.speciality_id" placeholder="请输入教师专业"></el-input>
+                    </el-col>
+                </el-form-item>
+                <el-form-item label="待办事项" prop="pending_approval_list">
+                    <el-col :span="20">
+                        <el-input v-model="form.pending_approval_list" placeholder="请输入待办事项"></el-input>
                     </el-col>
                 </el-form-item>
             </el-form>
@@ -99,16 +99,16 @@
 
 <script>
     export default{
-        name:"Student",
+        name:"Counsellor",
         data(){
             return {
                 //记录搜索条件内容
                 params: {
-                    username: "",
+                    name: "",
                     phone: "",
-                    student_id: ""
+                    speciality_id: ""
                 },
-                tableData: [],//记录学生表数据,
+                tableData: [],//记录教师表数据,
                 //弹窗标题
                 title: "",
                 //控制弹窗是否显示
@@ -120,20 +120,20 @@
                     sex: '',
                     email: '',
                     phone: '',
-                    student_id: '',
-                    college_id: '',
-                    speciality_id: ''
+                    description: '',
+                    speciality_id: '',
+                    pending_approval_list:''
                 },
                 //检查规则
                 rules: {
-                    name: [{ required: true, message: '请输入学生姓名', trigger: 'blur' }],
-                    username: [{ required: true, message: '请输入学生用户名', trigger: 'blur' }],
-                    sex: [{ required: true, message: '请选择学生性别', trigger: 'blur' }],
-                    email: [{ required: true, message: '请输入学生邮箱地址', trigger: 'blur' }],
-                    phone: [{ required: true, message: '请输入学生联系方式', trigger: 'blur' }],
-                    student_id: [{ required: true, message: '请输入学生学号', trigger: 'blur' }],
-                    college_id: [{ required: true, message: '请输入学生学院', trigger: 'blur' }],
-                    speciality_id: [{ required: true, message: '请输入学生专业', trigger: 'blur' }]
+                    name: [{ required: true, message: '请输入教师姓名', trigger: 'blur' }],
+                    username: [{ required: true, message: '请输入教师用户名', trigger: 'blur' }],
+                    sex: [{ required: true, message: '请选择教师性别', trigger: 'blur' }],
+                    email: [{ required: true, message: '请输入教师邮箱地址', trigger: 'blur' }],
+                    phone: [{ required: true, message: '请输入教师联系方式', trigger: 'blur' }],
+                    description: [{ required: true, message: '请输入教师学号', trigger: 'blur' }],
+                    speciality_id: [{ required: true, message: '请输入学生专业', trigger: 'blur' }],
+                    pending_approval_list:[{ required: true, message:'请输入待处理事项', trigger: 'blue'}]
                 },
                 pageSize: 10,
                 pageNum: 1,
@@ -141,12 +141,13 @@
             }
         },
         mounted() {
-            this.postStudents()
+            this.postCounsellor()
         },
         methods:{
             cancel() {
                 this.centerDialogVisible = false;
                 this.resetForm()
+                   
             },
             resetForm() {
                 this.$refs.form.resetFields();
@@ -158,12 +159,12 @@
                     type: 'warning'
                 }).then(() => {
                     console.log(row.id)
-                    this.axios.delete("/api/students/delete?id=" + row.id).then(res => {
+                    this.axios.delete("/api/counsellor/delete?id=" + row.id).then(res => {
                         if (res && res.data.code == '200') {
                             this.$message({
                                 type: "success", message: "删除成功"
                             })
-                            this.postStudents();
+                            this.postCounsellor();
                         }
                     })
                 }).catch(() => {
@@ -174,7 +175,7 @@
                 });
             },
             handleEdit(index, row) {
-                this.title = "编辑学生",
+                this.title = "编辑教师",
                     this.form = Object.assign({}, row);
                 this.form.sex = row.sex + ''
                 this.centerDialogVisible = true;
@@ -184,7 +185,7 @@
                     if (valid) {
                         if (this.form.id) {
                             //发起put请求修改方法
-                            this.axios.put('/api/students/update', this.form).then(res => {
+                            this.axios.put('/api/counsellor/update', this.form).then(res => {
                                 console.log(res)
                                 if (res && res.data.code == '200') {
                                     this.$message({
@@ -192,7 +193,7 @@
                                         type: "success"
                                     });
                                     this.centerDialogVisible = false;
-                                    this.postStudents();
+                                    this.postCounsellor();
                                 } else {
                                     this.$message({
                                         message: "修改失败!",
@@ -202,18 +203,18 @@
                             })
                         } else {
                             //发起post请求添加方法
-                            this.axios.post('/api/students/save', this.form).then(res => {
+                            this.axios.post('/api/counsellor/save', this.form).then(res => {
                                 if (res && res.data.code == 200) {
                                     this.$message({
-                                        message: "添加学生成功!",
+                                        message: "添加教师成功!",
                                         type: "success"
                                     })
                                     this.centerDialogVisible = false;
-                                    this.postStudents();
+                                    this.postCounsellor();
                                 } else {
                                     console.log('获取数据失败')
                                     this.$message({
-                                        message: "发生错误,添加学生失败!",
+                                        message: "发生错误,添加教师失败!",
                                         type: "error"
                                     })
                                 }
@@ -230,7 +231,7 @@
 
             },
             add() {
-                this.title = '添加学生'
+                this.title = '添加教师'
                 this.centerDialogVisible = true
                 this.resetForm()
                 this.form = {
@@ -239,9 +240,9 @@
                     sex: '',
                     email: '',
                     phone: '',
-                    student_id: '',
-                    college_id: '',
+                    description: '',
                     speciality_id: '',
+                    pending_approval_list: '',
                     id: ''
                 }
             },
@@ -254,15 +255,15 @@
             //     }
             //   })
             // },
-            postStudents() {
+            postCounsellor() {
                 //发起post请求
-                this.axios.post('/api/students/paginated', {
+                this.axios.post('/api/counsellor/paginated', {
                     pageNum: this.pageNum,
                     pageSize: this.pageSize,
                     params: {
                         name: this.params.name,
                         phone: this.params.phone,
-                        student_id: this.params.student_id
+                        speciality_id: this.params.speciality_id
                     }
                 }).then(res => {
                     console.log(res)
@@ -278,12 +279,12 @@
                 console.log(`每页 ${val} 条`);
                 this.pageNum = 1
                 this.pageSize = val
-                this.postStudents()
+                this.postCounsellor()
             },
             handleCurrentChange(val) {
                 console.log(`当前页: ${val}`);
                 this.pageNum = val
-                this.postStudents()
+                this.postCounsellor()
             }
         }
     }
