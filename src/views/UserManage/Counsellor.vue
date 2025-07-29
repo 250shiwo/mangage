@@ -8,11 +8,15 @@
             <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入联系方式" suffix-icon="el-icon-search"
                 v-model="params.phone" @keyup.enter.native="postCounsellor">
             </el-input>
-            <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入专业ID" suffix-icon="el-icon-search"
-                v-model="params.speciality_id" @keyup.enter.native="postCounsellor">
-            </el-input>
+            <el-select style="width: 200px; margin-left: 5px;" v-model="params.speciality_id" placeholder="请选择专业">
+                <el-option v-for="item in options" :key="item.speciality_id" :label="item.speciality_name"
+                    :value="item.speciality_id">
+                </el-option>
+            </el-select>
             <el-button type="primary" style="margin-left: 5px;" icon="el-icon-search"
                 @click="postCounsellor">搜索</el-button>
+            <el-button type="success" style="margin-left: 5px;" icon="el-icon-refresh-right"
+                @click="reset">重置</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
         </div>
         <!--数据-->
@@ -31,7 +35,11 @@
             <el-table-column prop="email" label="邮箱地址" width="180" align='center'></el-table-column>
             <el-table-column prop="phone" label="联系方式" width="180" align='center'></el-table-column>
             <el-table-column prop="description" label="描述" width="120" align='center'></el-table-column>
-            <el-table-column prop="speciality_id" label="专业" width="120" align='center'></el-table-column>
+            <el-table-column prop="speciality_id" label="专业" width="120" align='center'>
+                <template slot-scope="scope">
+                    {{ getSpecialityNameById(scope.row.speciality_id) }}
+                </template>
+            </el-table-column>
             <el-table-column prop="pending_approval_list" label="待办事项" width="180" align='center'></el-table-column>
             <el-table-column label="操作" width="180" align='center'>
                 <template slot-scope="scope">
@@ -80,7 +88,12 @@
                 </el-form-item>
                 <el-form-item label="专业" prop="speciality_id">
                     <el-col :span="20">
-                        <el-input v-model="form.speciality_id" placeholder="请输入教师专业"></el-input>
+                        <el-select v-model="form.speciality_id"
+                            placeholder="请选择专业">
+                            <el-option v-for="item in options" :key="item.speciality_id" :label="item.speciality_name"
+                                :value="item.speciality_id">
+                            </el-option>
+                        </el-select>
                     </el-col>
                 </el-form-item>
                 <el-form-item label="待办事项" prop="pending_approval_list">
@@ -102,6 +115,7 @@
         name:"Counsellor",
         data(){
             return {
+                options:[],
                 //记录搜索条件内容
                 params: {
                     name: "",
@@ -132,7 +146,7 @@
                     email: [{ required: true, message: '请输入教师邮箱地址', trigger: 'blur' }],
                     phone: [{ required: true, message: '请输入教师联系方式', trigger: 'blur' }],
                     description: [{ required: true, message: '请输入教师学号', trigger: 'blur' }],
-                    speciality_id: [{ required: true, message: '请输入学生专业', trigger: 'blur' }],
+                    speciality_id: [{ required: true, message: '请选择教师专业', trigger: 'blur' }],
                     pending_approval_list:[{ required: true, message:'请输入待处理事项', trigger: 'blue'}]
                 },
                 pageSize: 10,
@@ -142,8 +156,23 @@
         },
         mounted() {
             this.postCounsellor()
+            this.getSpeciality()
+        },
+        computed:{
+            getSpecialityNameById() {
+                return (speciality_id) => {
+                    const option = this.options.find(item => item.speciality_id === speciality_id);
+                    return option ? option.speciality_name : "";
+                }
+            }
         },
         methods:{
+            reset() {
+                this.params.name = ''
+                this.params.phone = ''
+                this.params.speciality_id = ''
+                this.postCounsellor()
+            },
             cancel() {
                 this.centerDialogVisible = false;
                 this.resetForm()
@@ -246,15 +275,14 @@
                     id: ''
                 }
             },
-            // getStudents(){
-            //   this.axios.get('/students?'+queryParams.toString(),{}).then(res=>{
-            //     if(res && res.data.code == 200){
-            //       this.tableData=res.data.data
-            //     }else{
-            //       console.log('获取数据失败')
-            //     }
-            //   })
-            // },
+            getSpeciality() {
+                this.axios.get('/api/speciality').then(res => {
+                    if (res && res.data.code == 200) {
+                        console.log(res)
+                        this.options = res.data.data
+                    }
+                })
+            },
             postCounsellor() {
                 //发起post请求
                 this.axios.post('/api/counsellor/paginated', {

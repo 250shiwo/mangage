@@ -1,4 +1,6 @@
 import pymysql
+import threading
+lock = threading.Lock()
 def connectDB():
     # 打开数据库连接
     db = pymysql.connect(host='localhost',
@@ -139,6 +141,23 @@ def updateSpeciality():
         db.rollback()
         return jsonify({'code': '400', 'message': str(e)})
 
+# 专业查询接口
+@app.route('/api/speciality', methods=['POST', 'GET'])
+def querySpeciality():
+    cursor = db.cursor()
+    try:
+        sql = "SELECT id,speciality_name,speciality_id,college_id FROM speciality"
+        lock.acquire()
+        cursor.execute(sql)
+        lock.release()
+        results = cursor.fetchall()
+        columns = ['id', 'speciality_name','speciality_id','college_id']
+        specialitys = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '查询成功', 'data': specialitys})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
 # 专业分页查询接口
 @app.route('/api/speciality/paginated', methods=['POST', 'GET'])
 def querySpecialityPaginated():
@@ -163,7 +182,9 @@ def querySpecialityPaginated():
         if college_id:
             count_sql += " AND college_id LIKE CONCAT('%%', %s, '%%')"
             params.append(college_id)
+        lock.acquire()
         cursor.execute(count_sql, params)
+        lock.release()
         total = int(cursor.fetchone()[0])
         # 查询分页数据
         sql = "SELECT id,speciality_id,speciality_name,college_id FROM speciality WHERE 1=1"
@@ -175,11 +196,30 @@ def querySpecialityPaginated():
             sql += " AND college_id LIKE CONCAT('%%', %s, '%%')"
         sql += " LIMIT %s OFFSET %s"
         pagination_params = params + [pageSize, offset]
+        lock.acquire()
         cursor.execute(sql, pagination_params)
+        lock.release()
         results = cursor.fetchall()
         columns = ['id', 'speciality_id', 'speciality_name','college_id']
         specialities = [dict(zip(columns, row)) for row in results]
         return jsonify({'code': '200', 'message': '分页查询成功', 'data': specialities, 'total': total})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 学院查询接口
+@app.route('/api/college', methods=['POST', 'GET'])
+def queryCollege():
+    cursor = db.cursor()
+    try:
+        sql = "SELECT id,college_id,college_name FROM college"
+        lock.acquire()
+        cursor.execute(sql)
+        lock.release()
+        results = cursor.fetchall()
+        columns = ['id', 'college_id', 'college_name']
+        colleges = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '查询成功', 'data': colleges})
     except Exception as e:
         db.rollback()
         return jsonify({'code': '400', 'message': str(e)})
@@ -403,7 +443,9 @@ def queryCounsellorPaginated():
         if speciality_id:
             count_sql += " AND speciality_id LIKE CONCAT('%%', %s, '%%')"
             params.append(speciality_id)
+        lock.acquire()
         cursor.execute(count_sql, params)
+        lock.release()
         total = int(cursor.fetchone()[0])
         # 查询分页数据
         sql = "SELECT id,name,username,sex,email,phone,description,speciality_id,pending_approval_list FROM counsellor WHERE 1=1"
@@ -415,7 +457,9 @@ def queryCounsellorPaginated():
             sql += " AND speciality_id LIKE CONCAT('%%', %s, '%%')"
         sql += " LIMIT %s OFFSET %s"
         pagination_params = params + [pageSize, offset]
+        lock.acquire()
         cursor.execute(sql, pagination_params)
+        lock.release()
         results = cursor.fetchall()
         columns = ['id', 'name', 'username', 'sex', 'email', 'phone', 'description', 'speciality_id', 'pending_approval_list']
         counsellors = [dict(zip(columns, row)) for row in results]
@@ -503,7 +547,7 @@ def updateStudent():
         return jsonify({'code': '400', 'message': str(e)})
 
 # 学生查询接口
-@app.route('/students', methods=['POST', 'GET'])
+@app.route('/api/students', methods=['POST', 'GET'])
 def queryStudents():
     cursor = db.cursor()
     try:
@@ -526,6 +570,8 @@ def queryStudentsPaginated():
     name = data.get('params', {}).get('name') or request.args.get('name')
     phone = data.get('params', {}).get('phone') or request.args.get('phone')
     student_id = data.get('params', {}).get('student_id') or request.args.get('student_id')
+    speciality_id = data.get('params', {}).get('speciality_id') or request.args.get('speciality_id')
+    college_id = data.get('params', {}).get('college_id') or request.args.get('college_id')
     offset = (pageNum - 1) * pageSize
     cursor = db.cursor()
     try:
@@ -541,7 +587,15 @@ def queryStudentsPaginated():
         if student_id:
             count_sql += " AND student_id LIKE CONCAT('%%', %s, '%%')"
             params.append(student_id)
+        if speciality_id:
+            count_sql += " AND speciality_id = %s"
+            params.append(speciality_id)
+        if college_id:
+            count_sql += " AND college_id = %s"
+            params.append(college_id)
+        lock.acquire()
         cursor.execute(count_sql, params)
+        lock.release()
         total = int(cursor.fetchone()[0])
         # 查询分页数据
         sql = "SELECT id,name,username,sex,email,phone,student_id,college_id,speciality_id FROM student WHERE 1=1"
@@ -551,9 +605,15 @@ def queryStudentsPaginated():
             sql += " AND phone LIKE CONCAT('%%', %s, '%%')"
         if student_id:
             sql += " AND student_id LIKE CONCAT('%%', %s, '%%')"
+        if speciality_id:
+            sql += " AND speciality_id = %s"
+        if college_id:
+            sql += " AND college_id = %s"
         sql += " LIMIT %s OFFSET %s"
         pagination_params = params + [pageSize, offset]
+        lock.acquire()
         cursor.execute(sql, pagination_params)
+        lock.release()
         results = cursor.fetchall()
         columns = ['id', 'name', 'username', 'sex', 'email', 'phone', 'student_id', 'college_id', 'speciality_id']
         students = [dict(zip(columns, row)) for row in results]

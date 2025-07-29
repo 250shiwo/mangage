@@ -11,8 +11,20 @@
             <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入学号" suffix-icon="el-icon-search"
                 v-model="params.student_id" @keyup.enter.native="postStudents">
             </el-input>
+            <el-select style="width: 200px; margin-left: 5px;" v-model="params.college_id" placeholder="请选择学院">
+                <el-option v-for="item in collegeOptions" :key="item.college_id" :label="item.college_name"
+                    :value="item.college_id">
+                </el-option>
+            </el-select>
+            <el-select style="width: 200px; margin-left: 5px;" v-model="params.speciality_id" placeholder="请选择专业">
+                <el-option v-for="item in specialityOptions" :key="item.speciality_id" :label="item.speciality_name"
+                    :value="item.speciality_id">
+                </el-option>
+            </el-select>
             <el-button type="primary" style="margin-left: 5px;" icon="el-icon-search"
                 @click="postStudents">搜索</el-button>
+            <el-button type="success" style="margin-left: 5px;" icon="el-icon-refresh-right"
+                @click="reset">重置</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
         </div>
         <!--数据-->
@@ -31,8 +43,16 @@
             <el-table-column prop="email" label="邮箱地址" width="180" align='center'></el-table-column>
             <el-table-column prop="phone" label="联系方式" width="180" align='center'></el-table-column>
             <el-table-column prop="student_id" label="学号" width="180" align='center'></el-table-column>
-            <el-table-column prop="college_id" label="学院" width="120" align='center'></el-table-column>
-            <el-table-column prop="speciality_id" label="专业" width="120" align='center'></el-table-column>
+            <el-table-column prop="college_id" label="学院" width="120" align='center'>
+                <template slot-scope="scope">
+                    {{ getCollegeNameById(scope.row.college_id) }}
+                </template>
+            </el-table-column>
+            <el-table-column prop="speciality_id" label="专业" width="120" align='center'>
+                <template slot-scope="scope">
+                    {{ getSpecialityNameById(scope.row.speciality_id) }}
+                </template>
+            </el-table-column>
             <el-table-column label="操作" width="180" align='center'>
                 <template slot-scope="scope">
                     <el-button size="mini" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
@@ -80,12 +100,20 @@
                 </el-form-item>
                 <el-form-item label="学院" prop="college_id">
                     <el-col :span="20">
-                        <el-input v-model="form.college_id" placeholder="请输入学生学院"></el-input>
+                        <el-select v-model="form.college_id" placeholder="请选择学生学院">
+                            <el-option v-for="item in collegeOptions" :key="item.college_id" :label="item.college_name"
+                                :value="item.college_id">
+                            </el-option>
+                        </el-select>
                     </el-col>
                 </el-form-item>
                 <el-form-item label="专业" prop="speciality_id">
                     <el-col :span="20">
-                        <el-input v-model="form.speciality_id" placeholder="请输入学生专业"></el-input>
+                        <el-select v-model="form.speciality_id" placeholder="请选择学生专业">
+                            <el-option v-for="item in specialityOptions" :key="item.speciality_id" :label="item.speciality_name"
+                                :value="item.speciality_id">
+                            </el-option>
+                        </el-select>
                     </el-col>
                 </el-form-item>
             </el-form>
@@ -102,11 +130,15 @@
         name:"Student",
         data(){
             return {
+                collegeOptions:[],
+                specialityOptions:[],
                 //记录搜索条件内容
                 params: {
-                    username: "",
+                    name: "",
                     phone: "",
-                    student_id: ""
+                    student_id: "",
+                    speciality_id: "",
+                    college_id: ""
                 },
                 tableData: [],//记录学生表数据,
                 //弹窗标题
@@ -132,8 +164,8 @@
                     email: [{ required: true, message: '请输入学生邮箱地址', trigger: 'blur' }],
                     phone: [{ required: true, message: '请输入学生联系方式', trigger: 'blur' }],
                     student_id: [{ required: true, message: '请输入学生学号', trigger: 'blur' }],
-                    college_id: [{ required: true, message: '请输入学生学院', trigger: 'blur' }],
-                    speciality_id: [{ required: true, message: '请输入学生专业', trigger: 'blur' }]
+                    college_id: [{ required: true, message: '请选择学生学院', trigger: 'blur' }],
+                    speciality_id: [{ required: true, message: '请选择学生专业', trigger: 'blur' }]
                 },
                 pageSize: 10,
                 pageNum: 1,
@@ -142,8 +174,32 @@
         },
         mounted() {
             this.postStudents()
+            this.getSpeciality()
+            this.getCollege()
+        },
+        computed: {
+            getCollegeNameById() {
+                return (college_id) => {
+                    const option = this.collegeOptions.find(item => item.college_id === college_id);
+                    return option ? option.college_name : "";
+                }
+            },
+            getSpecialityNameById() {
+                return (speciality_id) => {
+                    const option = this.specialityOptions.find(item => item.speciality_id === speciality_id);
+                    return option ? option.speciality_name : "";
+                }
+            }
         },
         methods:{
+            reset() {
+                this.params.name = ''
+                this.params.phone = ''
+                this.params.student_id = ''
+                this.params.college_id = ''
+                this.params.speciality_id = ''
+                this.postStudents()
+            },
             cancel() {
                 this.centerDialogVisible = false;
                 this.resetForm()
@@ -245,15 +301,22 @@
                     id: ''
                 }
             },
-            // getStudents(){
-            //   this.axios.get('/students?'+queryParams.toString(),{}).then(res=>{
-            //     if(res && res.data.code == 200){
-            //       this.tableData=res.data.data
-            //     }else{
-            //       console.log('获取数据失败')
-            //     }
-            //   })
-            // },
+            getCollege() {
+                this.axios.get('/api/college').then(res => {
+                    if (res && res.data.code == 200) {
+                        console.log(res)
+                        this.collegeOptions = res.data.data
+                    }
+                })
+            },
+            getSpeciality() {
+                this.axios.get('/api/speciality').then(res => {
+                    if (res && res.data.code == 200) {
+                        console.log(res)
+                        this.specialityOptions = res.data.data
+                    }
+                })
+            },
             postStudents() {
                 //发起post请求
                 this.axios.post('/api/students/paginated', {
@@ -262,7 +325,9 @@
                     params: {
                         name: this.params.name,
                         phone: this.params.phone,
-                        student_id: this.params.student_id
+                        student_id: this.params.student_id,
+                        speciality_id: this.params.speciality_id,
+                        college_id: this.params.college_id
                     }
                 }).then(res => {
                     console.log(res)

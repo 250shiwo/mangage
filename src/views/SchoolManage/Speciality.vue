@@ -2,17 +2,21 @@
     <!--搜索-->
     <div>
         <div style="margin-bottom: 5px;">
-            <el-input style="width: 200px;" placeholder="请输入专业ID" suffix-icon="el-icon-search" v-model="params.speciality_id"
-                @keyup.enter.native="postSpeciality">
+            <el-input style="width: 200px;" placeholder="请输入专业ID" suffix-icon="el-icon-search"
+                v-model="params.speciality_id" @keyup.enter.native="postSpeciality">
             </el-input>
             <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入专业名称" suffix-icon="el-icon-search"
                 v-model="params.speciality_name" @keyup.enter.native="postSpeciality">
             </el-input>
-            <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入所属学院" suffix-icon="el-icon-search"
-                v-model="params.college_id" @keyup.enter.native="postSpeciality">
-            </el-input>
+            <el-select style="width: 200px; margin-left: 5px;" v-model="params.college_id" placeholder="请选择所属学院">
+                <el-option v-for="item in options" :key="item.college_id" :label="item.college_name"
+                    :value="item.college_id">
+                </el-option>
+            </el-select>
             <el-button type="primary" style="margin-left: 5px;" icon="el-icon-search"
                 @click="postSpeciality">搜索</el-button>
+            <el-button type="success" style="margin-left: 5px;" icon="el-icon-refresh-right"
+                @click="reset">重置</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
         </div>
         <!--数据-->
@@ -21,7 +25,11 @@
             <el-table-column prop="id" label="ID" width="240" align='center'></el-table-column>
             <el-table-column prop="speciality_id" label="专业ID" width="300" align='center'></el-table-column>
             <el-table-column prop="speciality_name" label="专业名称" width="300" align='center'></el-table-column>
-            <el-table-column prop="college_id" label="所属学院ID" width="240" align='center'></el-table-column>
+            <el-table-column prop="college_id" label="所属学院" width="240" align='center'>
+                <template slot-scope="scope">
+                    {{ getCollegeNameById(scope.row.college_id) }}
+                </template>
+            </el-table-column>
             <el-table-column label="操作" width="300" align='center'>
                 <template slot-scope="scope">
                     <el-button size="mini" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
@@ -46,9 +54,13 @@
                         <el-input v-model="form.speciality_name" placeholder="请输入专业名称"></el-input>
                     </el-col>
                 </el-form-item>
-                 <el-form-item label="所属学院" prop="college_id">
+                <el-form-item label="所属学院" prop="college_id">
                     <el-col :span="20">
-                        <el-input v-model="form.college_id" placeholder="请输入所属学院"></el-input>
+                        <el-select v-model="form.college_id" placeholder="请选择所属学院">
+                            <el-option v-for="item in options" :key="item.college_id" :label="item.college_name"
+                                :value="item.college_id">
+                            </el-option>
+                        </el-select>
                     </el-col>
                 </el-form-item>
             </el-form>
@@ -65,6 +77,8 @@
         name:"College",
         data(){
             return {
+                //记录学院数据
+                options:[],
                 //记录搜索条件内容
                 params: {
                     speciality_id: "",
@@ -86,7 +100,7 @@
                 rules: {
                     speciality_id: [{ required: true, message: '请输入专业ID', trigger: 'blur' }],
                     speciality_name: [{ required: true, message: '请输入专业名称', trigger: 'blur' }],
-                    college_id: [{ required: true, message: '请输入所属学院', trigger: 'blur' }]
+                    college_id: [{ required: true, message: '请选择所属学院', trigger: 'blur' }]
                 },
                 pageSize: 10,
                 pageNum: 1,
@@ -95,15 +109,35 @@
         },
         mounted() {
             this.postSpeciality()
+            this.getCollege()
+        },
+        computed:{
+            getCollegeNameById(){
+                return(college_id) =>{
+                    const option = this.options.find(item => item.college_id === college_id);
+                    return option ? option.college_name : "";
+                }
+            }
         },
         methods:{
+            reset(){
+                this.params.college_id=''
+                this.params.speciality_id=''
+                this.params.speciality_name=''
+                this.postSpeciality()
+            },
             cancel() {
                 this.centerDialogVisible = false;
                 this.resetForm()
                    
             },
             resetForm() {
-                this.$refs.form.resetFields();
+                if(this.$refs.form){
+                    this.$refs.form.resetFields();
+                }else{
+                    console.log('表单引用不存在')
+                }
+                
             },
             handleDelete(index, row) {
                 this.$confirm('此操作将永久删除【' + row.speciality_name + '】, 是否继续?', '提示', {
@@ -193,15 +227,14 @@
                     id: ''
                 }
             },
-            // getStudents(){
-            //   this.axios.get('/students?'+queryParams.toString(),{}).then(res=>{
-            //     if(res && res.data.code == 200){
-            //       this.tableData=res.data.data
-            //     }else{
-            //       console.log('获取数据失败')
-            //     }
-            //   })
-            // },
+            getCollege(){
+             this.axios.get('/api/college').then(res =>{
+                if(res && res.data.code == 200){
+                    console.log(res)
+                    this.options = res.data.data
+                }
+             })
+            },
             postSpeciality() {
                 //发起post请求
                 this.axios.post('/api/speciality/paginated', {
