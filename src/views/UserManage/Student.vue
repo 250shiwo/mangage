@@ -26,9 +26,12 @@
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-refresh-right"
                 @click="reset">重置</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
+            <el-button type="danger" style="margin-left: 5px;" icon="el-icon-delete" @click="selectDelete"
+                v-if="multipleSelection.length > 0">删除选中行</el-button>
         </div>
         <!--数据-->
-        <el-table :data="tableData" :header-cell-style="{ background: '#f2f5fc', color: '#555555' }">
+        <el-table :data="tableData" :header-cell-style="{ background: '#f2f5fc', color: '#555555' }"
+            @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="60"></el-table-column>
             <el-table-column prop="id" label="ID" width="60" align='center'></el-table-column>
             <el-table-column prop="name" label="姓名" width="120" align='center'></el-table-column>
@@ -110,8 +113,8 @@
                 <el-form-item label="专业" prop="speciality_id">
                     <el-col :span="20">
                         <el-select v-model="form.speciality_id" placeholder="请选择学生专业">
-                            <el-option v-for="item in specialityOptions" :key="item.speciality_id" :label="item.speciality_name"
-                                :value="item.speciality_id">
+                            <el-option v-for="item in specialityOptions" :key="item.speciality_id"
+                                :label="item.speciality_name" :value="item.speciality_id">
                             </el-option>
                         </el-select>
                     </el-col>
@@ -130,6 +133,7 @@
         name:"Student",
         data(){
             return {
+                multipleSelection:[],
                 collegeOptions:[],
                 specialityOptions:[],
                 //记录搜索条件内容
@@ -192,6 +196,34 @@
             }
         },
         methods:{
+            handleSelectionChange(val){
+                this.multipleSelection = []
+                val.forEach(item =>{
+                    this.multipleSelection.push(item.id)
+                })
+            },
+            selectDelete(){
+                this.$confirm('此操作将删除所有选中行,是否继续?','提示',{
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(()=>{
+                    this.multipleSelection.forEach(id => {
+                        this.selectHandleDelete(id)
+                    })
+                    this.multipleSelection = []
+                    this.postStudents()
+                }).catch(()=>{
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                })
+                
+            },
+            selectHandleDelete(id){
+                this.axios.delete("/api/students/delete?id=" + id)
+            },
             reset() {
                 this.params.name = ''
                 this.params.phone = ''

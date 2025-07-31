@@ -95,13 +95,19 @@ def deleteSpeciality():
     cursor = db.cursor()
     try:
         sql = "DELETE FROM speciality WHERE id = %s"
-        cursor.execute(sql, (id,))
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
         if cursor.rowcount == 0:
             return jsonify({'code': 404, 'message': '未找到对应的专业记录'})
+        lock.acquire()
         db.commit()
+        lock.release()
         return jsonify({'code': 200, 'message': '专业数据删除成功'})
     except Exception as e:
+        lock.acquire()
         db.rollback()
+        lock.release()
         return jsonify({'code': 400, 'message': '专业数据删除失败: ' + str(e)})
 
 # 修改专业信息接口
@@ -184,8 +190,8 @@ def querySpecialityPaginated():
             params.append(college_id)
         lock.acquire()
         cursor.execute(count_sql, params)
-        lock.release()
         total = int(cursor.fetchone()[0])
+        lock.release()
         # 查询分页数据
         sql = "SELECT id,speciality_id,speciality_name,college_id FROM speciality WHERE 1=1"
         if speciality_id:
@@ -204,7 +210,9 @@ def querySpecialityPaginated():
         specialities = [dict(zip(columns, row)) for row in results]
         return jsonify({'code': '200', 'message': '分页查询成功', 'data': specialities, 'total': total})
     except Exception as e:
+        lock.acquire()
         db.rollback()
+        lock.release()
         return jsonify({'code': '400', 'message': str(e)})
 
 # 学院查询接口
@@ -236,7 +244,9 @@ def saveCollege():
     cursor = db.cursor()
     try:
         sql = "INSERT INTO college (college_id,college_name) VALUES (%s, %s)"
+        lock.acquire()
         cursor.execute(sql, (college_id,college_name))
+        lock.release()
         db.commit()
         return jsonify({'code': '200', 'message': '数据添加成功'})
     except Exception as e:
@@ -253,10 +263,14 @@ def deleteCollege():
     cursor = db.cursor()
     try:
         sql = "DELETE FROM college WHERE id = %s"
-        cursor.execute(sql, (id,))
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
         if cursor.rowcount == 0:
             return jsonify({'code': 404, 'message': '未找到对应的学院记录'})
+        lock.acquire()
         db.commit()
+        lock.release()
         return jsonify({'code': 200, 'message': '学院数据删除成功'})
     except Exception as e:
         db.rollback()
@@ -286,7 +300,9 @@ def updateCollege():
     sql = 'UPDATE college SET ' + ', '.join(update_fields) + ' WHERE id = %s'
     try:
         cursor = db.cursor()
+        lock.acquire()
         cursor.execute(sql, values)
+        lock.release()
         if cursor.rowcount == 0:
             return jsonify({'code': '404', 'message': '未找到对应学院'})
         db.commit()
@@ -315,7 +331,9 @@ def queryCollegePaginated():
         if college_name:
             count_sql += " AND college_name LIKE CONCAT('%%', %s, '%%')"
             params.append(college_name)
+        lock.acquire()
         cursor.execute(count_sql, params)
+        lock.release()
         total = int(cursor.fetchone()[0])
         # 查询分页数据
         sql = "SELECT id,college_id,college_name FROM college WHERE 1=1"
@@ -325,7 +343,9 @@ def queryCollegePaginated():
             sql += " AND college_name LIKE CONCAT('%%', %s, '%%')"
         sql += " LIMIT %s OFFSET %s"
         pagination_params = params + [pageSize, offset]
+        lock.acquire()
         cursor.execute(sql, pagination_params)
+        lock.release()
         results = cursor.fetchall()
         columns = ['id', 'college_id', 'college_name']
         colleges = [dict(zip(columns, row)) for row in results]
@@ -445,8 +465,8 @@ def queryCounsellorPaginated():
             params.append(speciality_id)
         lock.acquire()
         cursor.execute(count_sql, params)
-        lock.release()
         total = int(cursor.fetchone()[0])
+        lock.release()
         # 查询分页数据
         sql = "SELECT id,name,username,sex,email,phone,description,speciality_id,pending_approval_list FROM counsellor WHERE 1=1"
         if name:
@@ -478,10 +498,14 @@ def deleteCounsellor():
     cursor = db.cursor()
     try:
         sql = "DELETE FROM counsellor WHERE id = %s"
-        cursor.execute(sql, (id,))
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
         if cursor.rowcount == 0:
             return jsonify({'code': 404, 'message': '未找到对应的教师记录'})
+        lock.acquire()
         db.commit()
+        lock.release()
         return jsonify({'code': 200, 'message': '教师数据删除成功'})
     except Exception as e:
         db.rollback()
@@ -658,10 +682,14 @@ def deleteStudent():
     cursor = db.cursor()
     try:
         sql = "DELETE FROM student WHERE id = %s"
-        cursor.execute(sql, (id,))
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
         if cursor.rowcount == 0:
             return jsonify({'code': 404, 'message': '未找到对应的学生记录'})
+        lock.acquire()
         db.commit()
+        lock.release()
         return jsonify({'code': 200, 'message': '学生数据删除成功'})
     except Exception as e:
         db.rollback()

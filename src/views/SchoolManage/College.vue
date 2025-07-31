@@ -2,8 +2,8 @@
     <!--搜索-->
     <div>
         <div style="margin-bottom: 5px;">
-            <el-input style="width: 200px;" placeholder="请输入学院ID" suffix-icon="el-icon-search" v-model="params.college_id"
-                @keyup.enter.native="postCollege">
+            <el-input style="width: 200px;" placeholder="请输入学院ID" suffix-icon="el-icon-search"
+                v-model="params.college_id" @keyup.enter.native="postCollege">
             </el-input>
             <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入学院名称" suffix-icon="el-icon-search"
                 v-model="params.college_name" @keyup.enter.native="postCollege">
@@ -11,9 +11,11 @@
             <el-button type="primary" style="margin-left: 5px;" icon="el-icon-search"
                 @click="postCollege">搜索</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
+            <el-button type="danger" style="margin-left: 5px;" icon="el-icon-delete" @click="selectDelete" v-if="multipleSelection.length > 0">删除选中行</el-button>
         </div>
         <!--数据-->
-        <el-table :data="tableData" :header-cell-style="{ background: '#f2f5fc', color: '#555555' }">
+        <el-table :data="tableData" :header-cell-style="{ background: '#f2f5fc', color: '#555555' }"
+            @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="60"></el-table-column>
             <el-table-column prop="id" label="ID" width="300" align='center'></el-table-column>
             <el-table-column prop="college_id" label="学院ID" width="360" align='center'></el-table-column>
@@ -56,6 +58,7 @@
         name:"College",
         data(){
             return {
+                multipleSelection:[],
                 //记录搜索条件内容
                 params: {
                     college_id: "",
@@ -85,6 +88,35 @@
             this.postCollege()
         },
         methods:{
+            handleSelectionChange(val){
+                this.multipleSelection = []
+                val.forEach(item =>{
+                    this.multipleSelection.push(item.id)
+                })
+                console.log(this.multipleSelection)
+            },
+            selectDelete(){
+                this.$confirm('此操作将删除所有选中行,是否继续?','提示',{
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(()=>{
+                    this.multipleSelection.forEach(id => {
+                        this.selectHandleDelete(id)
+                    })
+                    this.multipleSelection = []
+                    this.postCollege()
+                }).catch(()=>{
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                })
+                
+            },
+            selectHandleDelete(id){
+                this.axios.delete("/api/college/delete?id=" + id)
+            },
             cancel() {
                 this.centerDialogVisible = false;
                 this.resetForm()
