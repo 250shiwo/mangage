@@ -2,25 +2,24 @@
     <!--搜索-->
     <div>
         <div style="margin-bottom: 5px;">
-            <el-input style="width: 200px;" placeholder="请输入学院ID" suffix-icon="el-icon-search"
-                v-model="params.college_id" @keyup.enter.native="postCollege">
-            </el-input>
-            <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入学院名称" suffix-icon="el-icon-search"
-                v-model="params.college_name" @keyup.enter.native="postCollege">
+            <el-input style="width: 200px;" placeholder="请输入公告标题" suffix-icon="el-icon-search"
+                v-model="params.name" @keyup.enter.native="postNotice">
             </el-input>
             <el-button type="primary" style="margin-left: 5px;" icon="el-icon-search"
-                @click="postCollege">搜索</el-button>
+                @click="postNotice">搜索</el-button>
             <el-button type="success" style="margin-left: 5px;" icon="el-icon-plus" @click="add">添加</el-button>
-            <el-button type="danger" style="margin-left: 5px;" icon="el-icon-delete" @click="selectDelete" v-if="multipleSelection.length > 0">删除选中行</el-button>
+            <el-button type="danger" style="margin-left: 5px;" icon="el-icon-delete" @click="selectDelete"
+                v-if="multipleSelection.length > 0">删除选中行</el-button>
         </div>
         <!--数据-->
         <el-table :data="tableData" :header-cell-style="{ background: '#f2f5fc', color: '#555555' }"
             @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="60"></el-table-column>
-            <el-table-column prop="id" label="ID" width="300" align='center'></el-table-column>
-            <el-table-column prop="college_id" label="学院ID" width="360" align='center'></el-table-column>
-            <el-table-column prop="college_name" label="学院名称" width="360" align='center'></el-table-column>
-            <el-table-column label="操作" width="360" align='center'>
+            <el-table-column prop="id" label="ID" width="240" align='center'></el-table-column>
+            <el-table-column prop="name" label="公告标题" width="240" align='center'></el-table-column>
+            <el-table-column prop="content" label="公告内容" width="300" align='center'></el-table-column>
+            <el-table-column prop="time" label="发布时间" width="300" align='center'></el-table-column>
+            <el-table-column label="操作" width="300" align='center'>
                 <template slot-scope="scope">
                     <el-button size="mini" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
                     <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
@@ -34,14 +33,14 @@
         <!--弹窗-->
         <el-dialog :title="title" :visible.sync="centerDialogVisible" width="30%" center>
             <el-form ref="form" :rules="rules" :model="form" label-width="80px">
-                <el-form-item label="学院ID" prop="college_id">
+                <el-form-item label="公告标题" prop="name">
                     <el-col :span="20">
-                        <el-input v-model="form.college_id" placeholder="请输入学院ID"></el-input>
+                        <el-input v-model="form.name" placeholder="请输入公告标题"></el-input>
                     </el-col>
                 </el-form-item>
-                <el-form-item label="学院名称" prop="college_name">
+                <el-form-item label="公告内容" prop="content">
                     <el-col :span="20">
-                        <el-input v-model="form.college_name" placeholder="请输入学院名称"></el-input>
+                        <el-input type="textarea" v-model="form.content" placeholder="请输入公告内容"></el-input>
                     </el-col>
                 </el-form-item>
             </el-form>
@@ -55,14 +54,13 @@
 
 <script>
     export default{
-        name:"College",
+        name:"Notice",
         data(){
             return {
                 multipleSelection:[],
                 //记录搜索条件内容
                 params: {
-                    college_id: "",
-                    college_name: ""     
+                    name: "", 
                 },
                 tableData: [],
                 //弹窗标题
@@ -71,13 +69,13 @@
                 centerDialogVisible: false,
                 //存储弹窗form表单对应的字段
                 form: {
-                    college_id: "",
-                    college_name: ""
+                    name: "",
+                    content: "",
                 },
                 //检查规则
                 rules: {
-                    college_id: [{ required: true, message: '请输入学院ID', trigger: 'blur' }],
-                    college_name: [{ required: true, message: '请输入学院名称', trigger: 'blur' }]
+                    name: [{ required: true, message: '请输入公告标题', trigger: 'blur' }],
+                    content: [{ required: true, message: '请输入公告内容', trigger: 'blur' }],
                 },
                 pageSize: 10,
                 pageNum: 1,
@@ -85,7 +83,7 @@
             }
         },
         mounted() {
-            this.postCollege()
+            this.postNotice()
         },
         methods:{
             handleSelectionChange(val){
@@ -104,7 +102,7 @@
                         this.selectHandleDelete(id)
                     })
                     this.multipleSelection = []
-                    this.postCollege()
+                    this.postNotice()
                 }).catch(()=>{
                     this.$message({
                         type: 'info',
@@ -114,7 +112,11 @@
                 
             },
             selectHandleDelete(id){
-                this.axios.delete("/api/college/delete?id=" + id)
+                this.axios.delete("/api/notice/delete?id=" + id)
+            },
+            reset(){
+                this.params.name=''
+                this.postNotice()
             },
             cancel() {
                 this.centerDialogVisible = false;
@@ -122,21 +124,26 @@
                    
             },
             resetForm() {
-                this.$refs.form.resetFields();
+                if(this.$refs.form){
+                    this.$refs.form.resetFields();
+                }else{
+                    console.log('表单引用不存在')
+                }
+                
             },
             handleDelete(index, row) {
-                this.$confirm('此操作将永久删除【' + row.college_name + '】, 是否继续?', '提示', {
+                this.$confirm('此操作将永久删除公告标题为【' + row.name + '】的公告, 是否继续?', '提示', {
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning'
                 }).then(() => {
                     console.log(row.id)
-                    this.axios.delete("/api/college/delete?id=" + row.id).then(res => {
+                    this.axios.delete("/api/notice/delete?id=" + row.id).then(res => {
                         if (res && res.data.code == '200') {
                             this.$message({
                                 type: "success", message: "删除成功"
                             })
-                            this.postCollege();
+                            this.postNotice();
                         }
                     })
                 }).catch(() => {
@@ -147,7 +154,7 @@
                 });
             },
             handleEdit(index, row) {
-                this.title = "编辑学院",
+                this.title = "编辑公告",
                     this.form = Object.assign({}, row);
                 this.centerDialogVisible = true;
             },
@@ -156,15 +163,14 @@
                     if (valid) {
                         if (this.form.id) {
                             //发起put请求修改方法
-                            this.axios.put('/api/college/update', this.form).then(res => {
-                                console.log(res)
+                            this.axios.put('/api/notice/update', this.form).then(res => {
                                 if (res && res.data.code == '200') {
                                     this.$message({
                                         message: "修改成功!",
                                         type: "success"
                                     });
                                     this.centerDialogVisible = false;
-                                    this.postCollege();
+                                    this.postNotice();
                                 } else {
                                     this.$message({
                                         message: "修改失败!",
@@ -174,18 +180,18 @@
                             })
                         } else {
                             //发起post请求添加方法
-                            this.axios.post('/api/college/save', this.form).then(res => {
+                            this.axios.post('/api/notice/save', this.form).then(res => {
                                 if (res && res.data.code == 200) {
                                     this.$message({
-                                        message: "添加学院成功!",
+                                        message: "添加公告成功!",
                                         type: "success"
                                     })
                                     this.centerDialogVisible = false;
-                                    this.postCollege();
+                                    this.postNotice();
                                 } else {
                                     console.log('获取数据失败')
                                     this.$message({
-                                        message: "发生错误,添加学院失败!",
+                                        message: "发生错误,添加公告失败!",
                                         type: "error"
                                     })
                                 }
@@ -202,35 +208,25 @@
 
             },
             add() {
-                this.title = '添加学院'
+                this.title = '添加公告'
                 this.centerDialogVisible = true
                 this.resetForm()
                 this.form = {
-                    college_id:'',
-                    college_name:'',
+                    name:'',
+                    content:'',
+                    time:'',
                     id: ''
                 }
             },
-            // getStudents(){
-            //   this.axios.get('/students?'+queryParams.toString(),{}).then(res=>{
-            //     if(res && res.data.code == 200){
-            //       this.tableData=res.data.data
-            //     }else{
-            //       console.log('获取数据失败')
-            //     }
-            //   })
-            // },
-            postCollege() {
+            postNotice() {
                 //发起post请求
-                this.axios.post('/api/college/paginated', {
+                this.axios.post('/api/notice/paginated', {
                     pageNum: this.pageNum,
                     pageSize: this.pageSize,
                     params: {
-                        college_id: this.params.college_id,
-                        college_name: this.params.college_name
+                        name: this.params.name,
                     }
                 }).then(res => {
-                    console.log(res)
                     if (res && res.data.code == 200) {
                         this.tableData = res.data.data
                         this.total = res.data.total
@@ -243,12 +239,12 @@
                 console.log(`每页 ${val} 条`);
                 this.pageNum = 1
                 this.pageSize = val
-                this.postCollege()
+                this.postNotice()
             },
             handleCurrentChange(val) {
                 console.log(`当前页: ${val}`);
                 this.pageNum = val
-                this.postCollege()
+                this.postNotice()
             }
         }
     }

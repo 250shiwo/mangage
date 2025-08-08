@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="background-color: #f0f8ff;">
     <!--这是管理员界面-->
     <!--导航栏部分-->
     <el-container style="height: 100%; border: 1px solid #eee">
@@ -53,6 +53,9 @@
           </el-dropdown>
         </el-header>
         <!--内容部分-->
+        <div style="padding: 5px 5px 0 5px; background-color: #f5f7fa;">
+          <breadcrumb :menu-tree="menuTree"></breadcrumb>
+        </div>
         <el-main style="height: 100%; width: 100%;">
           <!-- <Student></Student> -->
           <router-view></router-view>
@@ -64,9 +67,12 @@
 
 <script>
 
-// @ is an alias to /src
+import Breadcrumb from './Breadcrumb.vue';
 
 export default {
+  components:{
+    Breadcrumb
+  },
   name: 'Home',
   data() {
     return {
@@ -164,7 +170,6 @@ export default {
 .el-header {
   background-color: #B3C0D1;
   color: #333;
-  line-height: 60px;
 }
 .el-main {
   padding: 5px;

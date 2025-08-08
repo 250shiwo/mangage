@@ -6,10 +6,10 @@
                 系统登录
             </h3>
             <el-form-item label="" prop="username">
-                <el-input type="text" v-model="loginForm.username" autocomplete="off" placeholder="账号"></el-input>
+                <el-input type="text" prefix-icon="el-icon-user" v-model="loginForm.username" autocomplete="off" placeholder="账号"></el-input>
             </el-form-item>
             <el-form-item label="" prop="password">
-                <el-input type="password" v-model="loginForm.password" autocomplete="off" placeholder="密码"></el-input>
+                <el-input type="password" prefix-icon="el-icon-lock" v-model="loginForm.password" autocomplete="off" placeholder="密码"></el-input>
             </el-form-item>
             <el-form-item label="">
                 <el-radio-group v-model="loginForm.radio">
@@ -28,9 +28,6 @@
 
 <script>
 import router from '@/router';
-
-
-
 
 export default {
     name: 'Login',
@@ -56,10 +53,8 @@ export default {
                         .then(resp => {
                             // 处理登录成功
                             if (resp.data.code === '200') {
-                                console.log(resp)
                                 this.$message.success(resp.data.message);
                                 //存储
-                                console.log(resp.data.data.menus)
                                 sessionStorage.setItem("CurUser",JSON.stringify(resp.data.data))
                                 this.$store.commit("setMenu",resp.data.data.menus)
                                 // 跳转到首页或其他页面
@@ -68,16 +63,7 @@ export default {
                                     router.push(pendingRoute)
                                     localStorage.removeItem('pendingRoute')
                                 } else {
-                                    switch (this.loginForm.radio) {
-                                        case 1:
-                                            this.$router.push('/home');
-                                            break;
-                                        case 2:
-                                            this.$router.push('/about');
-                                            break;
-                                        case 3:
-                                            this.$router.push('/student');
-                                    }
+                                    this.$router.push('/home');
                                 }
                             } else {
                                  this.$message.error(resp.data.message);

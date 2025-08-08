@@ -24,9 +24,9 @@ function addNewRoute(menuList) {
           if (parentMenu) {
             let childRoute = {
               path: `/${parentMenu.menuClick}/${menu.menuClick}`,
-              name: menu.menuname,
+              name: menu.menuName,
               meta: {
-                title: menu.menuname,
+                title: menu.menuName,
               },
               component: () => import('../views/' + menu.menuComponent)
             };
@@ -35,9 +35,9 @@ function addNewRoute(menuList) {
         } else {
           let childRoute = {
             path: `/${menu.menuClick}`,
-            name: menu.menuname,
+            name: menu.menuName,
             meta: {
-              title: menu.menuname,
+              title: menu.menuName,
             },
             component: () => import('../views/' + menu.menuComponent)
           };

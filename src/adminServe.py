@@ -1,6 +1,56 @@
 import pymysql
 import threading
+from datetime import datetime
+from functools import wraps
 lock = threading.Lock()
+
+# 全局日志记录装饰器
+def log_operation_decorator(content=None):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                # 先执行原函数
+                result = func(*args, **kwargs)
+                
+                # 获取请求信息
+                from flask import request
+                current_content = content
+                if current_content is None:
+                    current_content = f"执行接口: {request.path}, 方法: {request.method}"
+                client_ip = request.remote_addr
+                
+               
+                username = "未知用户"
+                try:
+                    # 尝试从 session 中获取用户名
+                    data = request.get_json(silent=True) or {}
+                    username = data.get('username') or request.args.get('username', "未知用户")
+                    if username == "未知用户":
+                        if 'username' in session:
+                            username = session['username']
+                    if request.path == '/api/login' and request.method == 'POST':
+                        session['username'] = username
+                except:
+                    pass
+                
+                # 记录日志
+                cursor = db.cursor()
+                time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                sql = "INSERT INTO log (content, username, time, ip) VALUES (%s, %s, %s, %s)"
+                lock.acquire()
+                try:
+                    cursor.execute(sql, (content, username, time, client_ip))
+                    db.commit()
+                finally:
+                    lock.release()
+                
+                return result
+            except Exception as e:
+                db.rollback()
+                raise e
+        return wrapper
+    return decorator
 def connectDB():
     # 打开数据库连接
     db = pymysql.connect(host='localhost',
@@ -19,14 +69,16 @@ def connectDB():
     return db
 db = connectDB()
 
-from flask import Flask, request, json, jsonify
+from flask import Flask, request, json, jsonify, session
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'
 @app.route("/")
 def mainIndex():
     return "hello world"
 
 # 用户登录接口
 @app.route('/api/login', methods=['POST'])
+@log_operation_decorator('登录系统')
 def login():
     data = request.get_json(silent=True) or {}
     radio = int(data.get('radio') or request.args.get('radio'))
@@ -41,14 +93,20 @@ def login():
         tablename = 'student'
     print(username,password,radio)
     cursor = db.cursor()
-    sql="""select id,username,email,role_id,ip from %s where username = '%s' and
-     password='%s'""" %(tablename,username,password)
+    if radio == 1:
+        sql="""select id,username,password,email,role_id,ip from %s where username = '%s' and
+
+         password='%s'""" %(tablename,username,password)
+        columns = ['id', 'username','password','email','role_id','ip']
+    else:
+        sql="""select id,name,username,password,email,sex,phone,role_id,ip from %s where username = '%s' and
+
+         password='%s'""" %(tablename,username,password)
+        columns = ['id', 'name','username','password','email','sex','phone','role_id','ip']
     try:
         cursor.execute(sql)
         row = cursor.fetchone()
         if row:
-            print(row)
-            columns = ['id', 'username','email','role_id','ip']
             users_info = dict(zip(columns, row))
             role_id = str(users_info['role_id'])
             #根据 role_id 查询菜单数据
@@ -65,8 +123,447 @@ def login():
         db.rollback()
         return jsonify({"message": "登录出错: " + str(e), "code": '400'})
 
+# 公告查询接口
+@app.route('/api/notice', methods=['POST', 'GET'])
+def queryNotice():
+    cursor = db.cursor()
+    try:
+        sql = "SELECT id,name,content,time FROM notice order by time desc limit 5"
+
+
+
+        lock.acquire()
+        cursor.execute(sql)
+        lock.release()
+        results = cursor.fetchall()
+        columns = ['id','name','content','time']
+        notices = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '查询成功', 'data': notices})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 修改公告信息接口
+@app.route('/api/notice/update', methods=['PUT','POST'])
+@log_operation_decorator('修改公告信息')
+def updateNotice():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少公告 ID 参数'})
+    name = data.get('name')or request.args.get('name')
+    content = data.get('content')or request.args.get('content')
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    update_fields = []
+    values = []
+    if name:
+        update_fields.append('name = %s')
+        values.append(name)
+    if content:
+        update_fields.append('content = %s')
+        values.append(content)
+    if not update_fields:
+        return jsonify({'code': '400', 'message': '未提供需要修改的公告信息'})
+    values.append(id)
+    sql = 'UPDATE notice SET ' + ', '.join(update_fields) + ' WHERE id = %s'
+    try:
+        cursor = db.cursor()
+        cursor.execute(sql, values)
+        if cursor.rowcount == 0:
+            return jsonify({'code': '404', 'message': '未找到对应公告记录'})
+        db.commit()
+        return jsonify({'code': '200', 'message': '公告修改成功'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 公告数据删除接口
+@app.route('/api/notice/delete', methods=['DELETE'])
+@log_operation_decorator('删除公告信息')
+def deleteNotice():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少必要参数 id'})
+    cursor = db.cursor()
+    try:
+        sql = "DELETE FROM notice WHERE id = %s"
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
+        if cursor.rowcount == 0:
+            return jsonify({'code': 404, 'message': '未找到对应的公告记录'})
+        lock.acquire()
+        db.commit()
+        lock.release()
+        return jsonify({'code': 200, 'message': '公告数据删除成功'})
+    except Exception as e:
+        lock.acquire()
+        db.rollback()
+        lock.release()
+        return jsonify({'code': 400, 'message': '公告数据删除失败: ' + str(e)})
+
+# 公告分页查询接口
+@app.route('/api/notice/paginated', methods=['POST', 'GET'])
+def queryNoticePaginated():
+    data = request.get_json(silent=True) or {}
+    pageNum = int(data.get('pageNum') or request.args.get('pageNum'))
+    pageSize = int(data.get('pageSize') or request.args.get('pageSize'))
+    name = data.get('params', {}).get('name') or request.args.get('name')
+    offset = (pageNum - 1) * pageSize
+    cursor = db.cursor()
+    try:
+        # 查询总数
+        count_sql = "SELECT COUNT(*) FROM notice WHERE 1=1"
+        params = []
+        if name:
+            count_sql += " AND name LIKE CONCAT('%%', %s, '%%')"
+            params.append(name)
+        lock.acquire()
+        cursor.execute(count_sql, params)
+        total = int(cursor.fetchone()[0])
+        lock.release()
+        # 查询分页数据
+        sql = "SELECT id,name,content,time FROM notice WHERE 1=1"
+        if name:
+            sql += " AND name LIKE CONCAT('%%', %s, '%%')"
+        sql += " LIMIT %s OFFSET %s"
+        pagination_params = params + [pageSize, offset]
+        lock.acquire()
+        cursor.execute(sql, pagination_params)
+        lock.release()
+        results = cursor.fetchall()
+        columns = ['id', 'name', 'content','time']
+
+        notices = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '分页查询成功', 'data': notices, 'total': total})
+    except Exception as e:
+        lock.acquire()
+        db.rollback()
+        lock.release()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 公告数据保存接口
+@app.route('/api/notice/save', methods=['POST'])
+@log_operation_decorator('添加公告信息')
+def saveNotice():
+    data = request.get_json(silent=True) or {}
+    name = data.get('name') or request.args.get('name')
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    content = data.get('content') or request.args.get('content')
+    if not all([name,content]):
+        return jsonify({'code': '400', 'message': '缺少必要参数'})
+    
+    cursor = db.cursor()
+    try:
+        sql = "INSERT INTO notice (name,content,time) VALUES (%s, %s,%s)"
+        cursor.execute(sql, (name,content,time))
+        lock.acquire()
+        db.commit()
+        lock.release()
+        return jsonify({'code': '200', 'message': '数据添加成功'})
+    except Exception as e:
+        lock.acquire()
+        db.rollback()
+        lock.release()
+        return jsonify({'code': '400', 'message': '数据添加失败: ' + str(e)})
+
+# 日志数据删除接口
+@app.route('/api/log/delete', methods=['DELETE'])
+def deleteLog():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少必要参数 id'})
+    cursor = db.cursor()
+    try:
+        sql = "DELETE FROM log WHERE id = %s"
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
+        if cursor.rowcount == 0:
+            return jsonify({'code': 404, 'message': '未找到对应的日志记录'})
+        lock.acquire()
+        db.commit()
+        lock.release()
+        return jsonify({'code': 200, 'message': '日志数据删除成功'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': 400, 'message': '学院数据删除失败: ' + str(e)})
+
+# 日志分页查询接口
+@app.route('/api/log/paginated', methods=['POST', 'GET'])
+def queryLogPaginated():
+    data = request.get_json(silent=True) or {}
+    pageNum = int(data.get('pageNum') or request.args.get('pageNum'))
+    pageSize = int(data.get('pageSize') or request.args.get('pageSize'))
+    content = data.get('params', {}).get('content') or request.args.get('content')
+    username = data.get('params', {}).get('username') or request.args.get('username')
+    offset = (pageNum - 1) * pageSize
+    cursor = db.cursor()
+    try:
+        # 查询总数
+        count_sql = "SELECT COUNT(*) FROM log WHERE 1=1"
+        params = []
+        if content:
+            count_sql += " AND content LIKE CONCAT('%%', %s, '%%')"
+            params.append(content)
+        if username:
+            count_sql += " AND username LIKE CONCAT('%%', %s, '%%')"
+            params.append(username)
+        lock.acquire()
+        cursor.execute(count_sql, params)
+        lock.release()
+        total = int(cursor.fetchone()[0])
+        # 查询分页数据
+        sql = "SELECT id,content,username,time,ip FROM log WHERE 1=1"
+        if content:
+            sql += " AND content LIKE CONCAT('%%', %s, '%%')"
+        if username:
+            sql += " AND username LIKE CONCAT('%%', %s, '%%')"
+        sql += " LIMIT %s OFFSET %s"
+        pagination_params = params + [pageSize, offset]
+        lock.acquire()
+        cursor.execute(sql, pagination_params)
+        lock.release()
+        results = cursor.fetchall()
+        columns = ['id', 'content', 'username', 'time', 'ip']
+        logs = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '分页查询成功', 'data': logs, 'total': total})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 获取个人信息接口
+@app.route('/api/user/get_info', methods=['GET','POST'])
+def get_user_info():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    role_id = int(data.get('role_id') or request.args.get('role_id',0))
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少用户 ID 参数'})
+    if not role_id:
+        return jsonify({'code': 400, 'message': '缺少用户角色 ID 参数'})
+    try:
+        role_id = int(role_id)
+        table_map = {
+            1: 'user',
+            2: 'counsellor',
+            3: 'student'
+        }
+        table_name = table_map.get(role_id, 'user')
+        cursor = db.cursor()
+        if role_id == 1:
+            columns = ['id', 'username', 'password', 'email', 'role_id', 'ip']
+            sql = f'SELECT {','.join(columns)} FROM {table_name} WHERE id = %s'
+        else:
+            columns = ['id', 'name', 'username', 'password', 'email', 'sex', 'phone', 'role_id', 'ip']
+            sql = f'SELECT {','.join(columns)} FROM {table_name} WHERE id = %s'
+        cursor.execute(sql, (id,))
+        row = cursor.fetchone()
+        if row:
+            user_info = dict(zip(columns, row))
+            return jsonify({'code': '200', 'message': '获取用户信息成功', 'data': user_info})
+        else:
+            return jsonify({'code': '404', 'message': '未找到对应用户记录'})
+    except Exception as e:
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 修改个人信息接口
+@app.route('/api/user/update_info', methods=['PUT'])
+@log_operation_decorator('修改个人信息')
+def update_user_info():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少用户 ID 参数'})
+    role_id = int(data.get('role_id') or request.args.get('role_id', 0))
+    username = data.get('username') or request.args.get('username', '')
+    password = data.get('password') or request.args.get('password', '')
+    email = data.get('email') or request.args.get('email', '')
+    sex = data.get('sex') or request.args.get('sex', '')
+    phone = data.get('phone') or request.args.get('phone', '')
+
+    update_fields = []
+    values = []
+    if username:
+        update_fields.append('username = %s')
+        values.append(username)
+    if password:
+        update_fields.append('password = %s')
+        values.append(password)
+    if email:
+        update_fields.append('email = %s')
+        values.append(email)
+    if sex:
+        update_fields.append('sex = %s')
+        values.append(sex)
+    if phone:
+        update_fields.append('phone = %s')
+        values.append(phone)
+    if not update_fields:
+        return jsonify({'code': '400', 'message': '未提供需要修改的用户信息'})
+    values.append(id)
+    table_map = {
+        1: 'user',
+        2: 'counsellor',
+        3: 'student'
+    }
+    table_name = table_map.get(role_id, 'user')
+    sql = f'UPDATE {table_name} SET ' + ', '.join(update_fields) + ' WHERE id = %s'
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(sql, values)
+        if cursor.rowcount == 0:
+            return jsonify({'code': '404', 'message': '未找到对应用户记录'})
+        db.commit()
+        return jsonify({'code': '200', 'message': '用户信息修改成功'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 修改请假信息接口
+@app.route('/api/application/update', methods=['PUT','POST'])
+@log_operation_decorator('修改请假信息')
+def updateApplication():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少请假 ID 参数'})
+    status = data.get('status')or request.args.get('status')
+    audit_remark = data.get('audit_remark')or request.args.get('audit_remark')
+    update_fields = []
+    values = []
+    if status:
+        update_fields.append('status = %s')
+        values.append(status)
+    if audit_remark:
+        update_fields.append('audit_remark = %s')
+        values.append(audit_remark)
+    if not update_fields:
+        return jsonify({'code': '400', 'message': '未提供需要修改的请假信息'})
+    
+    values.append(id)
+    sql = 'UPDATE application SET ' + ', '.join(update_fields) + ' WHERE id = %s'
+    try:
+        cursor = db.cursor()
+        cursor.execute(sql, values)
+        if cursor.rowcount == 0:
+            return jsonify({'code': '404', 'message': '未找到对应请假记录'})
+        db.commit()
+        return jsonify({'code': '200', 'message': '请假修改成功'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 请假数据删除接口
+@app.route('/api/application/delete', methods=['DELETE'])
+@log_operation_decorator('删除请假信息')
+def deleteApplication():
+    data = request.get_json(silent=True) or {}
+    id = data.get('id') or request.args.get('id')
+    if not id:
+        return jsonify({'code': 400, 'message': '缺少必要参数 id'})
+    cursor = db.cursor()
+    try:
+        sql = "DELETE FROM application WHERE id = %s"
+        lock.acquire()
+        cursor.execute(sql, id)
+        lock.release()
+        if cursor.rowcount == 0:
+            return jsonify({'code': 404, 'message': '未找到对应的请假记录'})
+        lock.acquire()
+        db.commit()
+        lock.release()
+        return jsonify({'code': 200, 'message': '请假数据删除成功'})
+    except Exception as e:
+        lock.acquire()
+        db.rollback()
+        lock.release()
+        return jsonify({'code': 400, 'message': '请假数据删除失败: ' + str(e)})
+
+# 请假分页查询接口
+@app.route('/api/application/paginated', methods=['POST', 'GET'])
+def queryApplicationPaginated():
+    data = request.get_json(silent=True) or {}
+    pageNum = int(data.get('pageNum') or request.args.get('pageNum'))
+    pageSize = int(data.get('pageSize') or request.args.get('pageSize'))
+    role_id = int(data.get('params', {}).get('role_id') or request.args.get('role_id', 0))
+    name = data.get('params', {}).get('name') or request.args.get('name')
+    LeaveType = data.get('params', {}).get('type') or request.args.get('type')
+    status = data.get('params', {}).get('status') or request.args.get('status')
+    offset = (pageNum - 1) * pageSize
+    cursor = db.cursor()
+    try:
+        # 查询总数
+        count_sql = "SELECT COUNT(*) FROM application WHERE 1=1"
+        params = []
+        if name and role_id not in [1, 2]:
+            count_sql += " AND name LIKE CONCAT('%%', %s, '%%')"
+            params.append(name)
+        if LeaveType:
+            count_sql += " AND type LIKE CONCAT('%%', %s, '%%')"
+            params.append(LeaveType)
+        if status:
+            count_sql += " AND status LIKE CONCAT('%%', %s, '%%')"
+            params.append(status)
+        lock.acquire()
+        cursor.execute(count_sql, params)
+        total = int(cursor.fetchone()[0])
+        lock.release()
+        # 查询分页数据
+        sql = "SELECT id,name,type,start_time,end_time,reason,apply_time,status FROM application WHERE 1=1"
+        if name and role_id not in [1, 2]:
+            sql += " AND name LIKE CONCAT('%%', %s, '%%')"
+        if LeaveType:
+            sql += " AND type LIKE CONCAT('%%', %s, '%%')"
+        if status:
+            sql += " AND status LIKE CONCAT('%%', %s, '%%')"
+        sql += " LIMIT %s OFFSET %s"
+        pagination_params = params + [pageSize, offset]
+        lock.acquire()
+        cursor.execute(sql, pagination_params)
+        lock.release()
+        results = cursor.fetchall()
+        columns = ['id', 'name', 'type','start_time','end_time','reason','apply_time','status']
+        applications = [dict(zip(columns, row)) for row in results]
+        return jsonify({'code': '200', 'message': '分页查询成功', 'data': applications, 'total': total})
+    except Exception as e:
+        lock.acquire()
+        db.rollback()
+        lock.release()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 请假数据保存接口
+@app.route('/api/application/save', methods=['POST'])
+@log_operation_decorator('添加请假信息')
+def saveApplication():
+    data = request.get_json(silent=True) or {}
+    name = data.get('name') or request.args.get('name')
+    leaveType = data.get('type') or request.args.get('type')
+    StartleaveTime = data.get('StartleaveTime') or request.args.get('StartleaveTime')
+    EndleaveTime = data.get('EndleaveTime') or request.args.get('EndleaveTime')
+    remark = data.get('remark') or request.args.get('remark')
+    apply_time = data.get('apply_time') or request.args.get('apply_time')
+    if not all([name,leaveType,StartleaveTime,EndleaveTime,remark]):
+        return jsonify({'code': '400', 'message': '缺少必要参数'})
+    cursor = db.cursor()
+    try:
+        sql = "INSERT INTO application (name,type,start_time,end_time,reason,apply_time) VALUES (%s, %s,%s,%s,%s,%s)"
+        lock.acquire()
+        cursor.execute(sql, (name,leaveType,StartleaveTime,EndleaveTime,remark,apply_time))
+        lock.release()
+        db.commit()
+        return jsonify({'code': '200', 'message': '数据添加成功'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': '数据添加失败: ' + str(e)})
+
 # 专业数据保存接口
 @app.route('/api/speciality/save', methods=['POST'])
+@log_operation_decorator('添加专业信息')
 def saveSpeciality():
     data = request.get_json(silent=True) or {}
     speciality_id = data.get('speciality_id') or request.args.get('speciality_id')
@@ -87,6 +584,7 @@ def saveSpeciality():
 
 # 专业数据删除接口
 @app.route('/api/speciality/delete', methods=['DELETE'])
+@log_operation_decorator('删除专业信息')
 def deleteSpeciality():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -112,6 +610,7 @@ def deleteSpeciality():
 
 # 修改专业信息接口
 @app.route('/api/speciality/update', methods=['PUT','POST'])
+@log_operation_decorator('修改专业信息')
 def updateSpeciality():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -234,6 +733,7 @@ def queryCollege():
 
 # 学院数据保存接口
 @app.route('/api/college/save', methods=['POST'])
+@log_operation_decorator('添加学院信息')
 def saveCollege():
     data = request.get_json(silent=True) or {}
     college_id = data.get('college_id') or request.args.get('college_id')
@@ -255,6 +755,7 @@ def saveCollege():
 
 # 学院数据删除接口
 @app.route('/api/college/delete', methods=['DELETE'])
+@log_operation_decorator('删除学院信息')
 def deleteCollege():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -278,6 +779,7 @@ def deleteCollege():
 
 # 修改学院信息接口
 @app.route('/api/college/update', methods=['PUT','POST'])
+@log_operation_decorator('修改学院信息')
 def updateCollege():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -356,6 +858,7 @@ def queryCollegePaginated():
 
 # 教师数据保存接口
 @app.route('/api/counsellor/save', methods=['POST'])
+@log_operation_decorator('添加教师信息')
 def saveCounsellor():
     data = request.get_json(silent=True) or {}
     name = data.get('name') or request.args.get('name')
@@ -382,6 +885,7 @@ def saveCounsellor():
 
 # 修改教师信息接口
 @app.route('/api/counsellor/update', methods=['PUT','POST'])
+@log_operation_decorator('修改教师信息')
 def updateCounsellor():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -490,6 +994,7 @@ def queryCounsellorPaginated():
 
 # 教师数据删除接口
 @app.route('/api/counsellor/delete', methods=['DELETE'])
+@log_operation_decorator('删除教师信息')
 def deleteCounsellor():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -513,6 +1018,7 @@ def deleteCounsellor():
 
 # 修改学生信息接口
 @app.route('/api/students/update', methods=['PUT','POST'])
+@log_operation_decorator('修改学生信息')
 def updateStudent():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
@@ -648,6 +1154,7 @@ def queryStudentsPaginated():
 
 # 学生数据保存接口
 @app.route('/api/students/save', methods=['POST'])
+@log_operation_decorator('添加学生信息')
 def saveStudent():
     data = request.get_json(silent=True) or {}
     name = data.get('name') or request.args.get('name')
@@ -674,6 +1181,7 @@ def saveStudent():
 
 # 学生数据删除接口
 @app.route('/api/students/delete', methods=['DELETE'])
+@log_operation_decorator('删除学生信息')
 def deleteStudent():
     data = request.get_json(silent=True) or {}
     id = data.get('id') or request.args.get('id')
