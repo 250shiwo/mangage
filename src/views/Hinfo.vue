@@ -36,10 +36,11 @@
             </el-descriptions>
             <DateUtils></DateUtils>
         </div>
-        <div style="width: 50%;">
-            <div style="margin: 30px 0; font-weight: bold; font-size:18px;" >系统公告</div>
-            <el-collapse v-model="activeName" accordion >
-                <el-collapse-item v-for="item in tableData" :title="item.name" :name="item.id" >
+        <div style="width: 100%;">
+            <div style="margin: 30px 0; font-weight: bold; font-size:22px; text-align: center;"><span style="color: #dc3545;">系统公告</span>
+            </div>
+            <el-collapse v-model="activeName" accordion>
+                <el-collapse-item v-for="item in tableData" :title="item.name" :name="item.id">
                     <div style="color:#246B69;">{{ item.content }}</div>
                 </el-collapse-item>
             </el-collapse>

@@ -123,6 +123,40 @@ def login():
         db.rollback()
         return jsonify({"message": "登录出错: " + str(e), "code": '400'})
 
+# 学生请假次数排行
+@app.route('/api/echarts/bar', methods=['GET'])
+def get_echarts_bar():
+    cursor = db.cursor()
+    try:
+        sql = "SELECT name, COUNT(*) as count FROM application GROUP BY name ORDER BY count DESC LIMIT 5"
+        lock.acquire()
+        cursor.execute(sql)
+        lock.release()
+        results = cursor.fetchall()
+        x_data = [row[0] for row in results]
+        y_data = [row[1] for row in results]
+        return jsonify({'code': '200', 'message': '查询成功', 'data': {'xAxis': x_data, 'yAxis': y_data}})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
+# 请假单类型分布图
+@app.route('/api/echarts/pie', methods=['GET'])
+def get_echarts_pie():
+    cursor = db.cursor()
+    try:
+        sql = "SELECT type, COUNT(*) as count FROM application GROUP BY type"
+        lock.acquire()
+        cursor.execute(sql)
+        lock.release()
+        results = cursor.fetchall()
+        type_count = [dict(zip(['name', 'value'], row)) for row in results]
+        return jsonify({'code': '200', 'message': '查询成功', 'data': type_count})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'code': '400', 'message': str(e)})
+
 # 公告查询接口
 @app.route('/api/notice', methods=['POST', 'GET'])
 def queryNotice():
