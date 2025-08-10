@@ -5,9 +5,7 @@ import createPersistedState from 'vuex-persistedstate'
 Vue.use(Vuex)
 
 function addNewRoute(menuList) {
-  console.log(menuList)
   let routes = router.options.routes;
-  console.log(routes)
 
   const menuMap = {};
   

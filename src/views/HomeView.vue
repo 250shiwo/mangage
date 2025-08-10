@@ -106,7 +106,6 @@ export default {
         if (item.menuParentCode) {
           const parent = map[String(item.menuParentCode)];
           if (parent) {
-            console.log('为父菜单添加子菜单:', parent.menuName, '添加的子菜单:', map[item.menuCode].menuName);
             parent.children.push(map[String(item.menuCode)]);
           } else {
             console.log('未找到匹配的父菜单，menuParentCode:', item.menuParentCode);
@@ -115,8 +114,6 @@ export default {
           tree.push(map[item.menuCode]);
         }
       });
-      
-      console.log('构建好的菜单树数据:', tree);
       return tree;
     }
   },

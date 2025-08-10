@@ -262,7 +262,6 @@
             getCollege(){
              this.axios.get('/api/college').then(res =>{
                 if(res && res.data.code == 200){
-                    console.log(res)
                     this.options = res.data.data
                 }
              })
@@ -278,7 +277,6 @@
                         college_id:this.params.college_id
                     }
                 }).then(res => {
-                    console.log(res)
                     if (res && res.data.code == 200) {
                         this.tableData = res.data.data
                         this.total = res.data.total

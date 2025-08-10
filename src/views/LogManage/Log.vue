@@ -115,7 +115,6 @@
                         username: this.params.username
                     }
                 }).then(res => {
-                    console.log(res)
                     if (res && res.data.code == 200) {
                         this.tableData = res.data.data
                         this.total = res.data.total

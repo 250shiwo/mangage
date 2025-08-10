@@ -123,6 +123,41 @@ def login():
         db.rollback()
         return jsonify({"message": "登录出错: " + str(e), "code": '400'})
 
+# 并行查询所有基本数据
+@app.route('/api/echarts/card', methods=['GET'])
+def get_echarts_card():
+    cursor = db.cursor()
+    try:
+        # 查询专业数量
+        lock.acquire()
+        cursor.execute("SELECT COUNT(*) FROM speciality")
+        speciality_count = cursor.fetchone()[0]
+
+        # 查询学生数量
+        cursor.execute("SELECT COUNT(*) FROM student")
+        student_count = cursor.fetchone()[0]
+
+        # 查询累计请假人次和累计请假时间
+        cursor.execute("SELECT COUNT(*), SUM(TIMESTAMPDIFF(HOUR, start_time, end_time)) FROM application")
+        leave_count, total_leave_hours = cursor.fetchone()
+        lock.release()
+
+        return jsonify({
+            'code': '200',
+            'message': '查询成功',
+            'data': [
+                    { 'icon': 'el-icon-office-building', 'number': speciality_count, 'title': '专业数量' },
+                    { 'icon': 'el-icon-user', 'number': student_count, 'title': '学生总数' },
+                    { 'icon': 'el-icon-tickets', 'number': leave_count, 'title': '累计请假人次' },
+                    { 'icon': 'el-icon-time', 'number': total_leave_hours or 0, 'title': '累计请假时长(单位：小时)' }
+                ]
+            
+        })
+    except Exception as e:
+        db.rollback()
+        return jsonify({"message": "查询出错: " + str(e), "code": '400'})
+
+    
 # 学生请假次数排行
 @app.route('/api/echarts/bar', methods=['GET'])
 def get_echarts_bar():

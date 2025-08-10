@@ -230,7 +230,6 @@
                         college_name: this.params.college_name
                     }
                 }).then(res => {
-                    console.log(res)
                     if (res && res.data.code == 200) {
                         this.tableData = res.data.data
                         this.total = res.data.total

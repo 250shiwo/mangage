@@ -31,12 +31,7 @@ export default {
   name: 'Monitor',
   data() {
     return {
-      statsData: [
-        { icon: 'el-icon-office-building', number: 6, title: '专业数量' },
-        { icon: 'el-icon-user', number: 8, title: '学生总数' },
-        { icon: 'el-icon-tickets', number: 20, title: '累计请假人次' },
-        { icon: 'el-icon-time', number: 1992.76, title: '累计请假时长(单位：小时)' }
-      ],
+      statsData: []
     }
   },
   mounted() {
@@ -54,6 +49,13 @@ export default {
           this.axios.get('/api/echarts/bar').then(res => {
               if (res && res.data.code == 200) {
                   this.initBar(res.data.data.xAxis,res.data.data.yAxis)
+              } else {
+                  console.log('获取数据失败')
+              }
+          })
+          this.axios.get('/api/echarts/card').then(res => {
+              if (res && res.data.code == 200) {
+                  this.statsData = res.data.data
               } else {
                   console.log('获取数据失败')
               }

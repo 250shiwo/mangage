@@ -30,10 +30,7 @@ export default {
         },
         getBreadcrumb() {
             const menuTree = this.menuTree;
-            const currentRoute = this.$route;
-            console.log('当前 menuTree 数据:', menuTree);
-            console.log('当前路由信息:', currentRoute);
-            
+            const currentRoute = this.$route;  
             // 初始化面包屑列表
             let breadcrumbList = [];
             
