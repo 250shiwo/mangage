@@ -11,13 +11,13 @@
             <el-input style="width: 200px; margin-left: 5px;" placeholder="请输入学号" suffix-icon="el-icon-search"
                 v-model="params.student_id" @keyup.enter.native="postStudents">
             </el-input>
-            <el-select style="width: 200px; margin-left: 5px;" v-model="params.college_id" placeholder="请选择学院">
+            <el-select style="width: 200px; margin-left: 5px;" v-model="params.college_id" placeholder="请选择学院" @change="filterSpecialitiesByCollege">
                 <el-option v-for="item in collegeOptions" :key="item.college_id" :label="item.college_name"
                     :value="item.college_id">
                 </el-option>
             </el-select>
-            <el-select style="width: 200px; margin-left: 5px;" v-model="params.speciality_id" placeholder="请选择专业">
-                <el-option v-for="item in specialityOptions" :key="item.speciality_id" :label="item.speciality_name"
+            <el-select style="width: 200px; margin-left: 5px;" v-model="params.speciality_id" placeholder="请选择专业" @change="autoSelectCollege">
+                <el-option v-for="item in filteredSpecialities" :key="item.speciality_id" :label="item.speciality_name"
                     :value="item.speciality_id">
                 </el-option>
             </el-select>
@@ -103,7 +103,7 @@
                 </el-form-item>
                 <el-form-item label="学院" prop="college_id">
                     <el-col :span="20">
-                        <el-select v-model="form.college_id" placeholder="请选择学生学院">
+                        <el-select v-model="form.college_id" placeholder="请选择学生学院" @change="filterFormSpecialitiesByCollege">
                             <el-option v-for="item in collegeOptions" :key="item.college_id" :label="item.college_name"
                                 :value="item.college_id">
                             </el-option>
@@ -112,8 +112,8 @@
                 </el-form-item>
                 <el-form-item label="专业" prop="speciality_id">
                     <el-col :span="20">
-                        <el-select v-model="form.speciality_id" placeholder="请选择学生专业">
-                            <el-option v-for="item in specialityOptions" :key="item.speciality_id"
+                        <el-select v-model="form.speciality_id" placeholder="请选择学生专业" @change="autoSelectFormCollege">
+                            <el-option v-for="item in filteredFormSpecialities" :key="item.speciality_id"
                                 :label="item.speciality_name" :value="item.speciality_id">
                             </el-option>
                         </el-select>
@@ -136,6 +136,8 @@
                 multipleSelection:[],
                 collegeOptions:[],
                 specialityOptions:[],
+                filteredSpecialities:[],
+                filteredFormSpecialities:[],
                 //记录搜索条件内容
                 params: {
                     name: "",
@@ -196,6 +198,22 @@
             }
         },
         methods:{
+            filterSpecialitiesByCollege() {
+                if (this.params.college_id) {
+                    this.filteredSpecialities = this.specialityOptions.filter(item => item.college_id === this.params.college_id);
+                } else {
+                    this.filteredSpecialities = this.specialityOptions;
+                }
+                this.params.speciality_id = '';
+            },
+            filterFormSpecialitiesByCollege() {
+                if (this.form.college_id) {
+                    this.filteredFormSpecialities = this.specialityOptions.filter(item => item.college_id === this.form.college_id);
+                } else {
+                    this.filteredFormSpecialities = this.specialityOptions;
+                }
+                this.form.speciality_id = '';
+            },
             handleSelectionChange(val){
                 this.multipleSelection = []
                 val.forEach(item =>{
@@ -230,9 +248,13 @@
                 this.params.student_id = ''
                 this.params.college_id = ''
                 this.params.speciality_id = ''
+                this.filteredSpecialities = this.specialityOptions
+                this.filteredFormSpecialities = this.specialityOptions
+                this.pageNum = 1
                 this.postStudents()
             },
             cancel() {
+                this.filteredFormSpecialities = this.specialityOptions
                 this.centerDialogVisible = false;
                 this.resetForm()
             },
@@ -346,6 +368,8 @@
                     if (res && res.data.code == 200) {
                         
                         this.specialityOptions = res.data.data
+                    this.filteredSpecialities = res.data.data
+                    this.filteredFormSpecialities = res.data.data
                     }
                 })
             },
@@ -381,6 +405,18 @@
                 console.log(`当前页: ${val}`);
                 this.pageNum = val
                 this.postStudents()
+            },
+            autoSelectCollege() {
+                const selectedSpeciality = this.specialityOptions.find(item => item.speciality_id === this.params.speciality_id);
+                if (selectedSpeciality) {
+                    this.params.college_id = selectedSpeciality.college_id;
+                }
+            },
+            autoSelectFormCollege() {
+                const selectedSpeciality = this.specialityOptions.find(item => item.speciality_id === this.form.speciality_id);
+                if (selectedSpeciality) {
+                    this.form.college_id = selectedSpeciality.college_id;
+                }
             }
         }
     }

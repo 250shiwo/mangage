@@ -81,6 +81,7 @@ def mainIndex():
 @log_operation_decorator('登录系统')
 def login():
     data = request.get_json(silent=True) or {}
+    user_ip = request.remote_addr
     radio = int(data.get('radio') or request.args.get('radio'))
     username = data.get('username') or request.args.get('username')
     password = data.get('password') or request.args.get('password')
@@ -108,6 +109,16 @@ def login():
         row = cursor.fetchone()
         if row:
             users_info = dict(zip(columns, row))
+            # 更新用户IP地址
+            update_sql = "UPDATE %s SET ip = %%s WHERE id = %%s" % tablename
+            cursor.execute(update_sql, (user_ip, users_info['id']))
+            db.commit()
+            # 重新查询用户信息
+            cursor.execute(sql)
+            row = cursor.fetchone()
+            if row:
+                users_info = dict(zip(columns, row))
+
             role_id = str(users_info['role_id'])
             #根据 role_id 查询菜单数据
             menu_sql = "SELECT * FROM menu WHERE FIND_IN_SET(%s, menuRight)"
@@ -157,7 +168,6 @@ def get_echarts_card():
         db.rollback()
         return jsonify({"message": "查询出错: " + str(e), "code": '400'})
 
-    
 # 学生请假次数排行
 @app.route('/api/echarts/bar', methods=['GET'])
 def get_echarts_bar():
@@ -937,15 +947,13 @@ def saveCounsellor():
     phone = data.get('phone') or request.args.get('phone')
     description = data.get('description') or request.args.get('description')
     speciality_id = data.get('speciality_id') or request.args.get('speciality_id')
-    pending_approval_list = data.get('pending_approval_list') or request.args.get('pending_approval_list')
-    
     if not all([name,username, sex, email, phone, description, speciality_id]):
         return jsonify({'code': '400', 'message': '缺少必要参数'})
     
     cursor = db.cursor()
     try:
-        sql = "INSERT INTO counsellor (name,username, sex, email, phone, description, speciality_id, pending_approval_list) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cursor.execute(sql, (name,username, sex, email, phone, description, speciality_id, pending_approval_list))
+        sql = "INSERT INTO counsellor (name,username, sex, email, phone, description, speciality_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        cursor.execute(sql, (name,username, sex, email, phone, description, speciality_id))
         db.commit()
         return jsonify({'code': '200', 'message': '数据添加成功'})
     except Exception as e:
@@ -967,7 +975,6 @@ def updateCounsellor():
     phone = data.get('phone')or request.args.get('phone')
     description = data.get('description')or request.args.get('description')
     speciality_id = data.get('speciality_id')or request.args.get('speciality_id')
-    pending_approval_list = data.get('pending_approval_list')or request.args.get('pending_approval_list')
     
     update_fields = []
     values = []
@@ -992,9 +999,6 @@ def updateCounsellor():
     if speciality_id:
         update_fields.append('speciality_id = %s')
         values.append(speciality_id)
-    if pending_approval_list:
-        update_fields.append('pending_approval_list = %s')
-        values.append(pending_approval_list)
     
     if not update_fields:
         return jsonify({'code': '400', 'message': '未提供需要修改的教师信息'})
@@ -1041,7 +1045,7 @@ def queryCounsellorPaginated():
         total = int(cursor.fetchone()[0])
         lock.release()
         # 查询分页数据
-        sql = "SELECT id,name,username,sex,email,phone,description,speciality_id,pending_approval_list FROM counsellor WHERE 1=1"
+        sql = "SELECT id,name,username,sex,email,phone,description,speciality_id FROM counsellor WHERE 1=1"
         if name:
             sql += " AND name LIKE CONCAT('%%', %s, '%%')"
         if phone:
@@ -1054,7 +1058,7 @@ def queryCounsellorPaginated():
         cursor.execute(sql, pagination_params)
         lock.release()
         results = cursor.fetchall()
-        columns = ['id', 'name', 'username', 'sex', 'email', 'phone', 'description', 'speciality_id', 'pending_approval_list']
+        columns = ['id', 'name', 'username', 'sex', 'email', 'phone', 'description', 'speciality_id']
         counsellors = [dict(zip(columns, row)) for row in results]
         return jsonify({'code': '200', 'message': '分页查询成功', 'data': counsellors, 'total': total})
     except Exception as e:

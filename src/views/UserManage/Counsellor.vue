@@ -35,16 +35,15 @@
                         '男' : '女' }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="email" label="邮箱地址" width="180" align='center'></el-table-column>
+            <el-table-column prop="email" label="邮箱地址" width="240" align='center'></el-table-column>
             <el-table-column prop="phone" label="联系方式" width="180" align='center'></el-table-column>
-            <el-table-column prop="description" label="描述" width="120" align='center'></el-table-column>
+            <el-table-column prop="description" label="描述" width="180" align='center'></el-table-column>
             <el-table-column prop="speciality_id" label="专业" width="120" align='center'>
                 <template slot-scope="scope">
                     {{ getSpecialityNameById(scope.row.speciality_id) }}
                 </template>
             </el-table-column>
-            <el-table-column prop="pending_approval_list" label="待办事项" width="180" align='center'></el-table-column>
-            <el-table-column label="操作" width="180" align='center'>
+            <el-table-column label="操作" width="240" align='center'>
                 <template slot-scope="scope">
                     <el-button size="mini" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
                     <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
@@ -98,11 +97,6 @@
                         </el-select>
                     </el-col>
                 </el-form-item>
-                <el-form-item label="待办事项" prop="pending_approval_list">
-                    <el-col :span="20">
-                        <el-input v-model="form.pending_approval_list" placeholder="请输入待办事项"></el-input>
-                    </el-col>
-                </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
                 <el-button @click="cancel">取 消</el-button>
@@ -139,7 +133,6 @@
                     phone: '',
                     description: '',
                     speciality_id: '',
-                    pending_approval_list:''
                 },
                 //检查规则
                 rules: {
@@ -150,7 +143,6 @@
                     phone: [{ required: true, message: '请输入教师联系方式', trigger: 'blur' }],
                     description: [{ required: true, message: '请输入教师学号', trigger: 'blur' }],
                     speciality_id: [{ required: true, message: '请选择教师专业', trigger: 'blur' }],
-                    pending_approval_list:[{ required: false, message:'请输入待处理事项', trigger: 'blue'}]
                 },
                 pageSize: 10,
                 pageNum: 1,
@@ -303,7 +295,6 @@
                     phone: '',
                     description: '',
                     speciality_id: '',
-                    pending_approval_list: '',
                     id: ''
                 }
             },
