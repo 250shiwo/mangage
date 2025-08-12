@@ -1,19 +1,19 @@
-# manages 正在开发中
+# 学生请假管理系统
 
-## Project setup
-```
-npm install
-```
+## 内容概述
+- **多样性分类**：该系统拥有学院专业管理,学生管理,教师管理,请假管理等模块
+- **易于使用**：使用方法简单,只需鼠标点击。
+- **适用范围广**：适用于各种毕业设计与课程设计。
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## 使用说明
+1. 环境要求:**python3.12.**,**mysql5.7**,**node.js14**
+2. 执行数据库脚本,修改数据库连接配置
+3. 启动后端服务
+4. 加载依赖( npm i )
+5. 配置前端执行环境,启动前端服务
 
-### Compiles and minifies for production
-```
-npm run build
-```
+## 注意事项
+- 本系统由原作者所有，仅供学习参考,未经许可不得用于商业用途。
+- 联系作者 vx:tingche250
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+希望这个系统能为您提供高效便捷的服务
